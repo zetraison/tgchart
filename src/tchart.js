@@ -39,7 +39,7 @@
         }
         if (!window.requestAnimationFrame)
         {
-            window.requestAnimationFrame = function(callback, element) {
+            window.requestAnimationFrame = function(callback) {
                 currTime = Date.now();
                 timeToCall = Math.max(0, 16 - (currTime - lastTime));
                 id = window.setTimeout(function() { callback(currTime + timeToCall); },
@@ -134,7 +134,7 @@
             var thumbs = this.drawThumbs(slider, options);
             root.appendChild(thumbs);
 
-            var checkboxes = this.drawCheckboxes(options);
+            var checkboxes = this.drawCheckboxes();
             root.appendChild(checkboxes);
 
             // Set main animation loop
@@ -171,7 +171,7 @@
         },
 
         /**
-         * Update sceen
+         * Update scene
          *
          * @param sliderContext
          * @param canvasContext
@@ -296,17 +296,17 @@
 
                     var x1 = this.getRelativeCoordinate(p1.x, minX, maxX, options.sliderWidth);
                     var x2 = this.getRelativeCoordinate(p2.x, minX, maxX, options.sliderWidth);
-                    var y1 = sliderContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.sliderHeight);
-                    var y2 = sliderContext.canvas.height- this.getRelativeCoordinate(p2.y, minY, maxY, options.sliderHeight);
+                    var y01 = sliderContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.sliderHeight);
+                    var y02 = sliderContext.canvas.height- this.getRelativeCoordinate(p2.y, minY, maxY, options.sliderHeight);
 
-                    sliderContext.moveTo(x1, y1);
-                    sliderContext.lineTo(x2, y2);
+                    sliderContext.moveTo(x1, y01);
+                    sliderContext.lineTo(x2, y02);
 
-                    var y1 = canvasContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.canvasWidth);
-                    var y2 = canvasContext.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, options.canvasHeight);
+                    var y11 = canvasContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.canvasWidth);
+                    var y12 = canvasContext.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, options.canvasHeight);
 
-                    canvasContext.moveTo(x1, y1);
-                    canvasContext.lineTo(x2, y2);
+                    canvasContext.moveTo(x1, y11);
+                    canvasContext.lineTo(x2, y12);
                 }
 
                 sliderContext.stroke();
@@ -416,7 +416,7 @@
             return container;
         },
 
-        drawCheckboxes: function(options) {
+        drawCheckboxes: function() {
             var container = TChart.createDivContainer("checkboxContainer");
 
             var charts = this.charts;
@@ -438,7 +438,7 @@
                     }
                 };
 
-                checkbox.onmouseup = function(e) {
+                checkbox.onmouseup = function() {
                     self.running = false;
                 };
 

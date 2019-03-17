@@ -17,7 +17,7 @@ Now that we have a div we can use, we need to include TChart.js in our page.
 
 Now, we can create a chart. We add a script to our page:
 
-```html
+```javascript
 var data = {
     "columns": [
         ["x", 1542412800000, 1542499200000, 1542585600000, 1542672000000, 1542758400000],

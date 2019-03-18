@@ -14,13 +14,11 @@
 
     if (typeof require === "function" && typeof exports === "object" && typeof module === "object")  {
         module.exports = factory;
-    } else if (typeof define === "function") {
-        if (define.amd) {} else {
-            define(["tchart"], factory);
-        }
-    }
-    else {
+    } else if (typeof define !== "function") {
         window.TChart = factory();
+    } else {
+        if (define.amd) {
+        } else define(["tchart"], factory);
     }
 
 }(function() {
@@ -87,8 +85,9 @@
     TChart.components = {
         canvas: "canvas",
         slider: "slider",
+        thumbContainer: "thumb-container",
         thumb: "thumb",
-        comboboxPane: "comboboxPane"
+        checkboxContainer: "checkbox-container"
     };
 
     TChart.prototype = {
@@ -116,7 +115,9 @@
 
             // Load chart data
             this.charts = this.getCharts(data);
-            this.scale = 1;
+
+            this.x1 = 0;
+            this.x2 = 1;
             this.running = false;
 
             // Create UI
@@ -128,14 +129,14 @@
             var slider = TChart.createCanvas(TChart.components.slider, options.sliderWidth, options.sliderHeight);
             root.appendChild(slider);
 
-            var canvasContext = canvas.getContext("2d");
-            var sliderContext = slider.getContext("2d");
-
             var thumbs = this.drawThumbs(slider, options);
             root.appendChild(thumbs);
 
             var checkboxes = this.drawCheckboxes();
             root.appendChild(checkboxes);
+
+            var canvasContext = canvas.getContext("2d");
+            var sliderContext = slider.getContext("2d");
 
             // Set main animation loop
             this.updateScene(sliderContext, canvasContext, options);
@@ -166,7 +167,7 @@
                 // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
                 this.then = this.now - (this.elapsed % this.fpsInterval);
 
-                this.drawCharts(sliderContext, canvasContext, options);
+                this.drawCharts(sliderContext, canvasContext);
             }
         },
 
@@ -178,7 +179,7 @@
          * @param options
          */
         updateScene: function(sliderContext, canvasContext, options) {
-            this.drawCharts(sliderContext, canvasContext, options);
+            this.drawCharts(sliderContext, canvasContext);
 
             this.fpsInterval = 1000 / options.fps;
             this.then = Date.now();
@@ -199,19 +200,6 @@
                     return columns[i].slice(1, columns[i].length);
                 }
             }
-        },
-
-        /**
-         * Get relative coordinate of chart node
-         *
-         * @param value
-         * @param min
-         * @param max
-         * @param scale
-         * @returns {number}
-         */
-        getRelativeCoordinate: function(value, min, max, scale) {
-            return Math.round((value - min) / (max - min) * scale);
         },
 
         /**
@@ -258,80 +246,88 @@
         },
 
         /**
+         * Draw chart
+         *
+         * @param context
+         * @param points
+         * @param color
+         */
+        drawChart: function(context, points, color) {
+            context.beginPath();
+
+            var minX = TChart.getMinXPoint(points);
+            var maxX = TChart.getMaxXPoint(points);
+            var minY = TChart.getMinExtremum(points);
+            var maxY = TChart.getMaxExtremum(points);
+
+            for (var j = 0; j < points.length - 1; j++) {
+
+                var p1 = points[j];
+                var p2 = points[j+1];
+
+                var x1 = this.getRelativeCoordinate(p1.x, minX, maxX, context.canvas.width);
+                var x2 = this.getRelativeCoordinate(p2.x, minX, maxX, context.canvas.width);
+
+                var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, context.canvas.height);
+                var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, context.canvas.height);
+
+                context.moveTo(x1, y1);
+                context.lineTo(x2, y2);
+            }
+
+            context.strokeStyle = color;
+            context.stroke();
+        },
+
+        /**
          * Draw charts on canvas
          *
          * @param sliderContext
          * @param canvasContext
-         * @param options
          */
-        drawCharts: function(sliderContext, canvasContext, options) {
+        drawCharts: function(sliderContext, canvasContext) {
             canvasContext.save();
 
             sliderContext.clearRect(0, 0, sliderContext.canvas.width, sliderContext.canvas.height);
             canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
 
-            canvasContext.scale(1 / this.scale, 1);
-
             var charts = this.charts.filter(c => c.active);
-
-            var minX = TChart.getChartsLeftBorder(charts);
-            var maxX = TChart.getChartsRightBorder(charts);
-            var minY = TChart.getChartsMinExtremum(charts);
-            var maxY = TChart.getChartsMaxExtremum(charts);
 
             for (var i = 0; i < charts.length; i++) {
 
-                sliderContext.beginPath();
-                canvasContext.beginPath();
-
                 var chart = charts[i];
+                var points = TChart.getChartPoints(chart.points, this.x1, this.x2);
 
-                sliderContext.strokeStyle = chart.color;
-                canvasContext.strokeStyle = chart.color;
-
-                for (var j = 0; j < chart.points.length - 1; j++) {
-
-                    var p1 = chart.points[j];
-                    var p2 = chart.points[j+1];
-
-                    var x1 = this.getRelativeCoordinate(p1.x, minX, maxX, options.sliderWidth);
-                    var x2 = this.getRelativeCoordinate(p2.x, minX, maxX, options.sliderWidth);
-                    var y01 = sliderContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.sliderHeight);
-                    var y02 = sliderContext.canvas.height- this.getRelativeCoordinate(p2.y, minY, maxY, options.sliderHeight);
-
-                    sliderContext.moveTo(x1, y01);
-                    sliderContext.lineTo(x2, y02);
-
-                    var y11 = canvasContext.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, options.canvasWidth);
-                    var y12 = canvasContext.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, options.canvasHeight);
-
-                    canvasContext.moveTo(x1, y11);
-                    canvasContext.lineTo(x2, y12);
-                }
-
-                sliderContext.stroke();
-                canvasContext.stroke();
+                this.drawChart(sliderContext, chart.points, chart.color);
+                this.drawChart(canvasContext, points, chart.color);
             }
-
             canvasContext.restore();
         },
 
+        /**
+         * Draw slider thumbs
+         *
+         * @param canvas
+         * @param options
+         * @returns {HTMLElement}
+         */
         drawThumbs: function (canvas, options) {
             var self = this;
-            var container = TChart.createDivContainer("thumb-container", options.sliderWidth, options.sliderHeight);
-            var leftThumb = TChart.createThumb(options.thumbWidth, options.thumbHeight, 0, 0);
-            var rightThumb = TChart.createThumb(options.thumbWidth, options.thumbHeight, 0, options.sliderWidth - options.thumbWidth);
+            var container = TChart.createDiv(options.sliderWidth, options.sliderHeight, -options.sliderHeight, 0, TChart.components.thumbContainer);
 
-            var thumbs = [leftThumb, rightThumb];
+            var thumbL = TChart.createDiv(options.thumbWidth, options.sliderHeight, 0, 0, TChart.components.thumb);
+            var thumbR = TChart.createDiv(options.thumbWidth, options.sliderHeight, 0, options.sliderWidth - options.thumbWidth, TChart.components.thumb);
 
-            leftThumb.onmousedown = function(e) {
+            var thumbs = [thumbL, thumbR];
+
+            thumbL.onmousedown = function(e) {
                 self.running = true;
 
                 var sliderCoords = TChart.getCoords(canvas);
-                var leftThumbCoords = TChart.getCoords(leftThumb);
-                var rigthThumbCoords = TChart.getCoords(rightThumb);
+                var thumbLCoords = TChart.getCoords(thumbL);
+                var thumbRCoords = TChart.getCoords(thumbR);
 
-                var shiftX = e.pageX - leftThumbCoords.left;
+                var shiftX = e.pageX - thumbLCoords.left;
 
                 document.onmousemove = function(e) {
                     self.running = true;
@@ -340,17 +336,16 @@
                     if (newLeft <= 0) {
                         newLeft = 0;
                     }
-                    var rightEdge = rigthThumbCoords.left - rigthThumbCoords.width - leftThumbCoords.width;
+                    var rightEdge = thumbRCoords.left - thumbRCoords.width - thumbLCoords.width;
                     if (newLeft >= rightEdge) {
                         newLeft = rightEdge;
                     }
 
-                    console.log("rightEdge: " + rightEdge);
-                    console.log("left: " + newLeft);
+                    thumbL.style.left = newLeft + 'px';
 
-                    self.scale = (TChart.getCoords(rightThumb).left - TChart.getCoords(leftThumb).left) / options.sliderWidth;
+                    self.x1 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
 
-                    leftThumb.style.left = newLeft + 'px';
+                    console.log("left: " + newLeft, "rightEdge: " + rightEdge, "x1: " + self.x1);
                 };
 
                 document.onmouseup = function() {
@@ -361,36 +356,35 @@
                 return false;
             };
 
-            rightThumb.onmousedown = function(e) {
+            thumbR.onmousedown = function(e) {
                 self.running = true;
 
                 var sliderCoords = TChart.getCoords(canvas);
-                var leftThumbCoords = TChart.getCoords(leftThumb);
-                var rigthThumbCoords = TChart.getCoords(rightThumb);
+                var thumbLCoords = TChart.getCoords(thumbL);
+                var thumbRCoords = TChart.getCoords(thumbR);
 
-                var shiftX = e.pageX - rigthThumbCoords.left + leftThumbCoords.width;
+                var shiftX = e.pageX - thumbRCoords.left + thumbLCoords.width;
 
                 document.onmousemove = function(e) {
                     self.running = true;
 
                     var newLeft = e.pageX - shiftX - sliderCoords.left;
 
-                    var leftEdge = leftThumbCoords.left - sliderCoords.left;
+                    var leftEdge = thumbLCoords.left - sliderCoords.left;
                     if (newLeft <= leftEdge) {
                         newLeft = leftEdge;
                     }
 
-                    var rightEdge = canvas.offsetWidth - leftThumb.offsetWidth - rightThumb.offsetWidth;
+                    var rightEdge = canvas.offsetWidth - thumbL.offsetWidth - thumbR.offsetWidth;
                     if (newLeft >= rightEdge) {
                         newLeft = rightEdge;
                     }
 
-                    console.log("leftEdge: " + rightEdge);
-                    console.log("rigth: " + newLeft);
+                    thumbR.style.left = newLeft + 'px';
 
-                    self.scale = (TChart.getCoords(rightThumb).left - TChart.getCoords(leftThumb).left) / options.sliderWidth;
+                    self.x2 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
 
-                    rightThumb.style.left = newLeft + 'px';
+                    console.log("rigth: " + newLeft, "leftEdge: " + leftEdge, "x2: " + self.x2);
                 };
 
                 document.onmouseup = function() {
@@ -402,7 +396,6 @@
             };
 
             for (var i = 0; i < thumbs.length; i++) {
-
                 var thumb = thumbs[i];
 
                 thumb.ondragstart = function() {
@@ -416,11 +409,16 @@
             return container;
         },
 
+        /**
+         * Draw checkboxes component
+         *
+         * @returns {HTMLElement}
+         */
         drawCheckboxes: function() {
-            var container = TChart.createDivContainer("checkboxContainer");
+            var container = TChart.createDiv(options.sliderWidth, options.sliderHeight, -options.sliderHeight + 15, 0, TChart.components.checkboxContainer);
 
-            var charts = this.charts;
             var self = this;
+            var charts = this.charts;
 
             for (var i = 0; i < charts.length; i++) {
 
@@ -431,10 +429,11 @@
                 checkbox.onmousedown = function (e) {
                     self.running = true;
 
-                    var chartId = e.target.id.split('_')[1];
-                    var chart = self.getChartByID(chartId);
-                    if (chart) {
-                        chart.active = !document.getElementById("input_" + chartId).checked;
+                    var id = e.target.id.split('_')[1];
+                    var targetChart = self.getChartByID(charts, id);
+
+                    if (targetChart) {
+                        targetChart.active = !document.getElementById("input_" + id).checked;
                     }
                 };
 
@@ -448,8 +447,26 @@
             return container;
         },
 
-        getChartByID: function(id) {
-            var charts = this.charts;
+        /**
+         * Get relative coordinate of chart node
+         *
+         * @param value
+         * @param min
+         * @param max
+         * @param scale
+         * @returns {number}
+         */
+        getRelativeCoordinate: function(value, min, max, scale) {
+            return Math.round((value - min) / (max - min) * scale);
+        },
+
+        /**
+         * Get charts by ID
+         * @param charts
+         * @param id
+         * @returns {TChart.Chart}
+         */
+        getChartByID: function(charts, id) {
             return charts.filter(c => c.id === id)[0];
         }
     };
@@ -475,36 +492,34 @@
         return Math.max.apply(null, array);
     };
 
-    TChart.getChartsMinExtremum = function(charts) {
-        return TChart.getMin(
-            charts
-                .map(c => c.points)
-                .reduce((a, b) => a.concat(b), [])
-                .map(p => p.y));
+    TChart.getChartsPoints = function(charts) {
+        return charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
     };
 
-    TChart.getChartsMaxExtremum = function(charts) {
-        return TChart.getMax(
-            charts
-                .map(c => c.points)
-                .reduce((a, b) => a.concat(b), [])
-                .map(p => p.y));
+    TChart.getMinExtremum = function(points) {
+        return TChart.getMin(points.map(p => p.y));
     };
 
-    TChart.getChartsLeftBorder = function(charts) {
-        return TChart.getMin(
-            charts
-                .map(c => c.points)
-                .reduce((a, b) => a.concat(b), [])
-                .map(p => p.x));
+    TChart.getMaxExtremum = function(points) {
+        return TChart.getMax(points.map(p => p.y));
     };
 
-    TChart.getChartsRightBorder = function(charts) {
-        return TChart.getMax(
-            charts
-                .map(c => c.points)
-                .reduce((a, b) => a.concat(b), [])
-                .map(p => p.x));
+    TChart.getMinXPoint = function(points) {
+        return TChart.getMin(points.map(p => p.x));
+    };
+
+    TChart.getMaxXPoint = function(points) {
+        return TChart.getMax(points.map(p => p.x));
+    };
+
+    TChart.getChartPoints = function(points, x1, x2) {
+        var minX = TChart.getMin(points.map(p => p.x));
+        var maxX = TChart.getMax(points.map(p => p.x));
+
+        x1 = minX + (maxX - minX) * x1;
+        x2 = minX + (maxX - minX) * x2;
+
+        return points.filter(p => p.x >= x1 && p.x <= x2);
     };
 
     TChart.createCanvas = function(id, width, height) {
@@ -518,27 +533,16 @@
         return canvas;
     };
 
-    TChart.createThumb = function(width, height, top, left) {
-        var thumb = document.createElement("div");
+    TChart.createDiv = function(width, height, top, left, className) {
+        var elem = document.createElement("div");
 
-        thumb.className = "thumb";
-        thumb.style.width = width + "px";
-        thumb.style.height = height + "px";
-        thumb.style.top = top + "px";
-        thumb.style.left = left + "px";
+        elem.className = className;
+        elem.style.width = width + "px";
+        elem.style.height = height + "px";
+        elem.style.top = top + "px";
+        elem.style.left = left + "px";
 
-        return thumb;
-    };
-
-    TChart.createDivContainer = function(className, width, height) {
-        var container = document.createElement("div");
-
-        container.className = className;
-        container.style.width = width + "px";
-        container.style.height = height + "px";
-        container.style.top = -height + "px";
-
-        return container;
+        return elem;
     };
 
     TChart.createCheckbox = function(id, title, color) {
@@ -550,11 +554,13 @@
         label.className = "container";
 
         var input = document.createElement("input");
+
         input.type = "checkbox";
         input.id = "input_" + id;
-        input.checked = "checked";
+        input.checked = true;
 
         var span = document.createElement("span");
+
         span.className = "checkmark";
         span.id = "span_" + id;
         span.style.backgroundColor = color;

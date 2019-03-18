@@ -2,10 +2,6 @@
     display: block;
 }
 
-#sliderContainer {
-    display: inline-flex;
-}
-
 .thumb {
     position: relative;
     cursor: pointer;
@@ -20,14 +16,18 @@
     opacity: 0.5;
 }
 
+.checkbox-container {
+    position: relative;
+    display: block;
+}
+
 .container {
     display: inline-block;
     position: relative;
-    padding-left: 30px;
-    padding-right: 20px;
+    padding: 10px 20px 10px 40px;
     margin-right: 20px;
     cursor: pointer;
-    font-size: 22px;
+    font-size: 20px;
     border: 2px solid #eee;
     border-radius: 25px;
     -webkit-user-select: none;
@@ -51,7 +51,8 @@
     height: 25px;
     width: 25px;
     border-radius: 25px;
-    background-color: #eee;
+    margin-top: 10px;
+    margin-left: 10px;
 }
 
 .checkmark:after {

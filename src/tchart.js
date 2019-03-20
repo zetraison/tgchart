@@ -70,11 +70,10 @@
         sliderHeight: 40,
 
         thumbWidth: 10,
-        thumbHeight: 50,
-        thumbTop: -50,
-        thumbLeft: 200,
 
-        fps: 24
+        gridCount: 6,
+
+        fps: 60
     };
 
     TChart.types = {
@@ -87,7 +86,8 @@
         slider: "slider",
         thumbContainer: "thumb-container",
         thumb: "thumb",
-        checkboxContainer: "checkbox-container"
+        checkboxContainer: "checkbox-container",
+        grid: "grid"
     };
 
     TChart.prototype = {
@@ -119,27 +119,33 @@
             this.x1 = 0;
             this.x2 = 1;
             this.running = false;
+            this.alpha = 0;
+            this.delta = 0.05;
 
             // Create UI
             var root = document.getElementById(id);
 
-            var canvas = TChart.createCanvas(TChart.components.canvas, options.canvasWidth, options.canvasHeight);
-            root.appendChild(canvas);
+            var chartCanvas = TChart.createCanvas(options.canvasWidth, options.canvasHeight, 0, 0);
+            root.appendChild(chartCanvas);
 
-            var slider = TChart.createCanvas(TChart.components.slider, options.sliderWidth, options.sliderHeight);
-            root.appendChild(slider);
+            var sliderCanvas = TChart.createCanvas(options.sliderWidth, options.sliderHeight, 0, 0);
+            root.appendChild(sliderCanvas);
 
-            var thumbs = this.drawThumbs(slider, options);
+            var gridCanvas = TChart.createCanvas(options.canvasWidth, options.canvasWidth, -options.canvasHeight - options.sliderHeight, 0);
+            root.appendChild(gridCanvas);
+
+            var thumbs = this.drawThumbs(sliderCanvas, options);
             root.appendChild(thumbs);
 
             var checkboxes = this.drawCheckboxes();
             root.appendChild(checkboxes);
 
-            var canvasContext = canvas.getContext("2d");
-            var sliderContext = slider.getContext("2d");
+            var canvasContext = chartCanvas.getContext("2d");
+            var sliderContext = sliderCanvas.getContext("2d");
+            var gridContext = gridCanvas.getContext("2d");
 
             // Set main animation loop
-            this.updateScene(sliderContext, canvasContext, options);
+            this.updateScene(sliderContext, canvasContext, gridContext, options);
 
             return this;
         },
@@ -149,10 +155,11 @@
          *
          * @param sliderContext
          * @param canvasContext
+         * @param gridContext
          * @param options
          */
-        animate: function(sliderContext, canvasContext, options) {
-            requestAnimationFrame(this.animate.bind(this, sliderContext, canvasContext, options));
+        animate: function(sliderContext, canvasContext, gridContext, options) {
+            requestAnimationFrame(this.animate.bind(this, sliderContext, canvasContext, gridContext, options));
 
             if (!this.running) return;
 
@@ -167,7 +174,14 @@
                 // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
                 this.then = this.now - (this.elapsed % this.fpsInterval);
 
-                this.drawCharts(sliderContext, canvasContext);
+                canvasContext.save();
+
+                sliderContext.clearRect(0, 0, sliderContext.canvas.width, sliderContext.canvas.height);
+                canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+
+                this.drawCharts(sliderContext, canvasContext, options);
+
+                canvasContext.restore();
             }
         },
 
@@ -176,14 +190,16 @@
          *
          * @param sliderContext
          * @param canvasContext
+         * @param gridContext
          * @param options
          */
-        updateScene: function(sliderContext, canvasContext, options) {
-            this.drawCharts(sliderContext, canvasContext);
+        updateScene: function(sliderContext, canvasContext, gridContext, options) {
+            this.drawGrid(gridContext, options);
+            this.drawCharts(sliderContext, canvasContext, options);
 
             this.fpsInterval = 1000 / options.fps;
             this.then = Date.now();
-            this.animate(sliderContext, canvasContext, options);
+            this.animate(sliderContext, canvasContext, gridContext, options);
         },
 
         /**
@@ -251,14 +267,17 @@
          * @param context
          * @param points
          * @param color
+         * @param active
+         * @param minY
+         * @param maxY
          */
-        drawChart: function(context, points, color) {
+        drawChart: function(context, points, color, active, minY, maxY) {
             context.beginPath();
+
+            this.alpha += this.delta;
 
             var minX = TChart.getMinXPoint(points);
             var maxX = TChart.getMaxXPoint(points);
-            var minY = TChart.getMinExtremum(points);
-            var maxY = TChart.getMaxExtremum(points);
 
             for (var j = 0; j < points.length - 1; j++) {
 
@@ -271,11 +290,17 @@
                 var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, context.canvas.height);
                 var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, context.canvas.height);
 
+                if (!active) {
+                    y1 -= this.alpha * context.canvas.height;
+                    y2 -= this.alpha * context.canvas.height;
+                }
+
                 context.moveTo(x1, y1);
                 context.lineTo(x2, y2);
             }
 
             context.strokeStyle = color;
+            context.lineWidth = 1.5;
             context.stroke();
         },
 
@@ -284,24 +309,87 @@
          *
          * @param sliderContext
          * @param canvasContext
+         * @param options
          */
-        drawCharts: function(sliderContext, canvasContext) {
-            canvasContext.save();
+        drawCharts: function(sliderContext, canvasContext, options) {
+            var charts = this.charts;
 
-            sliderContext.clearRect(0, 0, sliderContext.canvas.width, sliderContext.canvas.height);
-            canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+            var allPoints = TChart.getChartsPoints(charts);
 
-            var charts = this.charts.filter(c => c.active);
+            var minY = TChart.getMinExtremum(allPoints);
+            var maxY = TChart.getMaxExtremum(allPoints);
+            var minX = TChart.getMinXPoint(allPoints);
+            var maxX = TChart.getMaxXPoint(allPoints);
 
             for (var i = 0; i < charts.length; i++) {
 
                 var chart = charts[i];
                 var points = TChart.getChartPoints(chart.points, this.x1, this.x2);
 
-                this.drawChart(sliderContext, chart.points, chart.color);
-                this.drawChart(canvasContext, points, chart.color);
+                this.drawChart(sliderContext, chart.points, chart.color, chart.active, minY, maxY);
+                this.drawChart(canvasContext, points, chart.color, chart.active, minY, maxY);
             }
-            canvasContext.restore();
+
+            this.drawXAxisTickMarks(canvasContext, minX, maxX, options);
+            this.drawYAxisTickMarks(canvasContext, minY, maxY, options);
+        },
+
+        /**
+         * Draw grid
+         *
+         * @param context
+         * @param options
+         */
+        drawGrid: function(context, options) {
+            var gridCount = options.gridCount;
+            var step = Math.round(context.canvas.height / gridCount);
+
+            for (var i = 0; i < gridCount; i++) {
+                context.moveTo(0, context.canvas.height - i * step - 20);
+                context.lineTo(context.canvas.width, context.canvas.height - i * step - 20);
+            }
+
+            context.strokeStyle = "#555";
+            context.lineWidth = 0.3;
+            context.stroke();
+        },
+
+        /**
+         * Draw x axis tick marks
+         *
+         * @param context
+         * @param minX
+         * @param maxX
+         * @param options
+         */
+        drawXAxisTickMarks: function(context, minX, maxX, options) {
+            var gridCount = options.gridCount;
+            var step = Math.round(context.canvas.width / gridCount);
+
+            for (var i = 0; i < gridCount; i++) {
+                context.fillText(i, i * step + 10, context.canvas.height - 5);
+            }
+
+            context.font = "12px Arial";
+        },
+
+        /**
+         * Draw y axis tick marks
+         *
+         * @param context
+         * @param minY
+         * @param maxY
+         * @param options
+         */
+        drawYAxisTickMarks: function(context, minY, maxY, options) {
+            var gridCount = options.gridCount;
+            var step = Math.round(context.canvas.height / gridCount);
+
+            for (var i = 0; i < gridCount; i++) {
+                context.fillText(i, 0, context.canvas.height - i * step - 25);
+            }
+
+            context.font = "12px Arial";
         },
 
         /**
@@ -313,10 +401,20 @@
          */
         drawThumbs: function (canvas, options) {
             var self = this;
-            var container = TChart.createDiv(options.sliderWidth, options.sliderHeight, -options.sliderHeight, 0, TChart.components.thumbContainer);
+            var container = TChart.createDiv(
+                options.sliderWidth,
+                options.sliderHeight,
+                -options.sliderHeight - options.canvasHeight,
+                0,
+                TChart.components.thumbContainer);
 
             var thumbL = TChart.createDiv(options.thumbWidth, options.sliderHeight, 0, 0, TChart.components.thumb);
-            var thumbR = TChart.createDiv(options.thumbWidth, options.sliderHeight, 0, options.sliderWidth - options.thumbWidth, TChart.components.thumb);
+            var thumbR = TChart.createDiv(
+                options.thumbWidth,
+                options.sliderHeight,
+                0,
+                options.sliderWidth - options.thumbWidth,
+                TChart.components.thumb);
 
             var thumbs = [thumbL, thumbR];
 
@@ -345,7 +443,7 @@
 
                     self.x1 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
 
-                    console.log("left: " + newLeft, "rightEdge: " + rightEdge, "x1: " + self.x1);
+                    //console.log("left: " + newLeft, "rightEdge: " + rightEdge, "x1: " + self.x1);
                 };
 
                 document.onmouseup = function() {
@@ -384,7 +482,7 @@
 
                     self.x2 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
 
-                    console.log("rigth: " + newLeft, "leftEdge: " + leftEdge, "x2: " + self.x2);
+                    //console.log("rigth: " + newLeft, "leftEdge: " + leftEdge, "x2: " + self.x2);
                 };
 
                 document.onmouseup = function() {
@@ -415,7 +513,12 @@
          * @returns {HTMLElement}
          */
         drawCheckboxes: function() {
-            var container = TChart.createDiv(options.sliderWidth, options.sliderHeight, -options.sliderHeight + 15, 0, TChart.components.checkboxContainer);
+            var container = TChart.createDiv(
+                options.sliderWidth,
+                options.sliderHeight,
+                -options.sliderHeight - options.canvasHeight + 15,
+                0,
+                TChart.components.checkboxContainer);
 
             var self = this;
             var charts = this.charts;
@@ -428,6 +531,7 @@
 
                 checkbox.onmousedown = function (e) {
                     self.running = true;
+                    self.alpha = 0;
 
                     var id = e.target.id.split('_')[1];
                     var targetChart = self.getChartByID(charts, id);
@@ -522,13 +626,14 @@
         return points.filter(p => p.x >= x1 && p.x <= x2);
     };
 
-    TChart.createCanvas = function(id, width, height) {
+    TChart.createCanvas = function(width, height, top, left) {
         var canvas = document.createElement("canvas");
 
-        canvas.id = id;
         canvas.className = "canvas";
         canvas.width = width;
         canvas.height = height;
+        canvas.style.top = top + "px";
+        canvas.style.left = left + "px";
 
         return canvas;
     };

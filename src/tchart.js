@@ -55,8 +55,7 @@
     })();
 
     var TChart = function (id, data, options) {
-        TChart.prototype.init(id, data, options);
-        return this;
+        return this.init(id, data, options);
     };
 
     TChart.version = "0.1";
@@ -116,6 +115,7 @@
             // Load chart data
             this.charts = this.getCharts(data);
 
+            this.id = id;
             this.x1 = 0;
             this.x2 = 1;
             this.running = false;
@@ -404,16 +404,22 @@
             var container = TChart.createDiv(
                 options.sliderWidth,
                 options.sliderHeight,
-                -options.sliderHeight - options.canvasHeight,
+                - options.sliderHeight - options.canvasHeight,
                 0,
                 TChart.components.thumbContainer);
 
-            var thumbL = TChart.createDiv(options.thumbWidth, options.sliderHeight, 0, 0, TChart.components.thumb);
+            var thumbL = TChart.createDiv(
+                options.thumbWidth,
+                options.sliderHeight,
+                0,
+                0,
+                TChart.components.thumb);
+
             var thumbR = TChart.createDiv(
                 options.thumbWidth,
                 options.sliderHeight,
                 0,
-                options.sliderWidth - options.thumbWidth,
+                options.sliderWidth - options.thumbWidth - options.thumbWidth,
                 TChart.components.thumb);
 
             var thumbs = [thumbL, thumbR];
@@ -434,7 +440,7 @@
                     if (newLeft <= 0) {
                         newLeft = 0;
                     }
-                    var rightEdge = thumbRCoords.left - thumbRCoords.width - thumbLCoords.width;
+                    var rightEdge = thumbRCoords.left - thumbLCoords.width - sliderCoords.left;
                     if (newLeft >= rightEdge) {
                         newLeft = rightEdge;
                     }
@@ -442,8 +448,6 @@
                     thumbL.style.left = newLeft + 'px';
 
                     self.x1 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
-
-                    //console.log("left: " + newLeft, "rightEdge: " + rightEdge, "x1: " + self.x1);
                 };
 
                 document.onmouseup = function() {
@@ -481,8 +485,6 @@
                     thumbR.style.left = newLeft + 'px';
 
                     self.x2 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
-
-                    //console.log("rigth: " + newLeft, "leftEdge: " + leftEdge, "x2: " + self.x2);
                 };
 
                 document.onmouseup = function() {
@@ -526,18 +528,31 @@
             for (var i = 0; i < charts.length; i++) {
 
                 var chart = charts[i];
+                var checkboxID = [this.id, chart.id].join("_");
 
-                var checkbox = TChart.createCheckbox(chart.id, chart.name, chart.color);
+                var checkbox = TChart.createCheckbox(checkboxID, chart.name, chart.color);
 
                 checkbox.onmousedown = function (e) {
+                    if (e.button !== 0) return;
+
                     self.running = true;
                     self.alpha = 0;
 
-                    var id = e.target.id.split('_')[1];
-                    var targetChart = self.getChartByID(charts, id);
+                    var chartID = e.target.id.split('_')[1];
+                    var targetChart = self.getChartByID(charts, chartID);
 
-                    if (targetChart) {
-                        targetChart.active = !document.getElementById("input_" + id).checked;
+                    var targetCheckboxID = [self.id, chartID].join("_");
+
+                    var checked = document.getElementById(targetCheckboxID  + "_input").checked;
+                    var span = document.getElementById(targetCheckboxID + "_span");
+
+                    targetChart.active = !checked;
+
+                    if (checked) {
+                        span.style.background = "white";
+                        span.style.border = "2px solid " + targetChart.color;
+                    } else {
+                        span.style.background = targetChart.color;
                     }
                 };
 
@@ -653,7 +668,7 @@
     TChart.createCheckbox = function(id, title, color) {
         var label = document.createElement("label");
 
-        label.id = "label_" + id;
+        label.id = id + "_label";
         label.innerText = title;
         label.name = name;
         label.className = "container";
@@ -661,13 +676,13 @@
         var input = document.createElement("input");
 
         input.type = "checkbox";
-        input.id = "input_" + id;
+        input.id = id + "_input";
         input.checked = true;
 
         var span = document.createElement("span");
 
         span.className = "checkmark";
-        span.id = "span_" + id;
+        span.id = id + "_span";
         span.style.backgroundColor = color;
 
         label.appendChild(input);

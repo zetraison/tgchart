@@ -64,6 +64,7 @@
         cssPath: "../css/style.css",
         canvasWidth: 400,
         canvasHeight: 400,
+        canvasBottom: 20,
 
         sliderWidth: 400,
         sliderHeight: 40,
@@ -71,6 +72,8 @@
         thumbWidth: 6,
 
         gridCount: 6,
+
+        font: "12px Arial",
 
         fps: 60
     };
@@ -162,15 +165,11 @@
 
             if (!this.running) return;
 
-            // calc elapsed time since last loop
             this.now = Date.now();
             this.elapsed = this.now - this.then;
 
-            // if enough time has elapsed, draw the next frame
             if (this.elapsed > this.fpsInterval) {
 
-                // Get ready for next frame by setting then=now, but also adjust for your
-                // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
                 this.then = this.now - (this.elapsed % this.fpsInterval);
 
                 canvasContext.save();
@@ -269,8 +268,10 @@
          * @param active
          * @param minY
          * @param maxY
+         * @param legend
+         * @param options
          */
-        drawChart: function(context, points, color, active, minY, maxY) {
+        drawChart: function(context, points, color, active, minY, maxY, legend, options) {
             context.beginPath();
 
             this.alpha += this.delta;
@@ -286,8 +287,8 @@
                 var x1 = this.getRelativeCoordinate(p1.x, minX, maxX, context.canvas.width);
                 var x2 = this.getRelativeCoordinate(p2.x, minX, maxX, context.canvas.width);
 
-                var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, -20, maxY, context.canvas.height);
-                var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, -20, maxY, context.canvas.height);
+                var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, -options.canvasBottom, maxY, context.canvas.height);
+                var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, -options.canvasBottom, maxY, context.canvas.height);
 
                 if (!active) {
                     y1 -= this.alpha * context.canvas.height;
@@ -296,6 +297,11 @@
 
                 context.moveTo(x1, y1);
                 context.lineTo(x2, y2);
+
+                // if (legent && j % 10 === 0) {
+                //     context.fillText(x2, x1,  context.canvas.height - 5);
+                //     context.font = options.font;
+                // }
             }
 
             context.strokeStyle = color;
@@ -317,20 +323,17 @@
 
             var minY = TChart.getMinExtremum(allPoints);
             var maxY = TChart.getMaxExtremum(allPoints);
-            var minX = TChart.getMinXPoint(allPoints);
-            var maxX = TChart.getMaxXPoint(allPoints);
 
             for (var i = 0; i < charts.length; i++) {
 
                 var chart = charts[i];
                 var points = TChart.getChartPoints(chart.points, this.x1, this.x2);
 
-                this.drawChart(sliderContext, chart.points, chart.color, chart.active, minY, maxY);
-                this.drawChart(canvasContext, points, chart.color, chart.active, minY, maxY);
+                this.drawChart(sliderContext, chart.points, chart.color, chart.active, minY, maxY, false, options);
+                this.drawChart(canvasContext, points, chart.color, chart.active, minY, maxY, true, options);
             }
 
-            this.drawXAxisTickMarks(canvasContext, minX, maxX, options);
-            this.drawYAxisTickMarks(canvasContext, minY, maxY, options);
+            //this.drawYAxisTickMarks(canvasContext, minY, maxY, options);
         },
 
         /**
@@ -344,8 +347,8 @@
             var step = Math.round(context.canvas.height / gridCount);
 
             for (var i = 0; i < gridCount; i++) {
-                context.moveTo(0, context.canvas.height - i * step - 20);
-                context.lineTo(context.canvas.width, context.canvas.height - i * step - 20);
+                context.moveTo(0, context.canvas.height - i * step - options.canvasBottom);
+                context.lineTo(context.canvas.width, context.canvas.height - i * step - options.canvasBottom);
             }
 
             context.strokeStyle = "#555";
@@ -369,7 +372,7 @@
                 context.fillText(i, i * step + 10, context.canvas.height - 5);
             }
 
-            context.font = "12px Arial";
+            context.font = options.font;
         },
 
         /**
@@ -388,7 +391,7 @@
                 context.fillText(i, 0, context.canvas.height - i * step - 25);
             }
 
-            context.font = "12px Arial";
+            context.font = options.font;
         },
 
         /**

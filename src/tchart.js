@@ -61,14 +61,14 @@
     TChart.version = "0.1";
 
     TChart.defaults = {
-        cssPath: "../src/css/style.css",
+        cssPath: "src/css/style.css",
         canvasWidth: 400,
         canvasHeight: 400,
 
         sliderWidth: 400,
         sliderHeight: 40,
 
-        thumbWidth: 10,
+        thumbWidth: 6,
 
         gridCount: 6,
 
@@ -80,11 +80,11 @@
         yAxis: "line"
     };
 
-    TChart.components = {
+    TChart.class = {
         canvas: "canvas",
-        slider: "slider",
-        thumbContainer: "thumb-container",
         thumb: "thumb",
+        thumbMiddle: "thumb-middle",
+        thumbContainer: "thumb-container",
         checkboxContainer: "checkbox-container",
         grid: "grid"
     };
@@ -108,8 +108,7 @@
                 throw new TChart.Exception("incorrect data")
             }
 
-            options = options || TChart.defaults;
-
+            options = TChart.loadOptions(options);
             TChart.loadCSS(options);
 
             // Load chart data
@@ -137,7 +136,7 @@
             var thumbs = this.drawThumbs(sliderCanvas, options);
             root.appendChild(thumbs);
 
-            var checkboxes = this.drawCheckboxes();
+            var checkboxes = this.drawCheckboxes(options);
             root.appendChild(checkboxes);
 
             var canvasContext = chartCanvas.getContext("2d");
@@ -287,8 +286,8 @@
                 var x1 = this.getRelativeCoordinate(p1.x, minX, maxX, context.canvas.width);
                 var x2 = this.getRelativeCoordinate(p2.x, minX, maxX, context.canvas.width);
 
-                var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, minY, maxY, context.canvas.height);
-                var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, minY, maxY, context.canvas.height);
+                var y1 = context.canvas.height - this.getRelativeCoordinate(p1.y, -20, maxY, context.canvas.height);
+                var y2 = context.canvas.height - this.getRelativeCoordinate(p2.y, -20, maxY, context.canvas.height);
 
                 if (!active) {
                     y1 -= this.alpha * context.canvas.height;
@@ -401,53 +400,91 @@
          */
         drawThumbs: function (canvas, options) {
             var self = this;
-            var container = TChart.createDiv(
+            var slider = TChart.createDiv(
                 options.sliderWidth,
                 options.sliderHeight,
                 - options.sliderHeight - options.canvasHeight,
                 0,
-                TChart.components.thumbContainer);
+                TChart.class.thumbContainer);
 
-            var thumbL = TChart.createDiv(
-                options.thumbWidth,
+            var thumbM = TChart.createThumb(
+                options.sliderHeight - 4,
+                0,
+                TChart.class.thumbMiddle);
+
+            thumbM.style.width = "100%";
+
+            var thumbL = TChart.createThumb(
                 options.sliderHeight,
                 0,
-                0,
-                TChart.components.thumb);
+                TChart.class.thumb);
 
-            var thumbR = TChart.createDiv(
-                options.thumbWidth,
+
+            thumbL.style.width = options.thumbWidth + "px";
+            thumbL.style.left = "0%";
+
+            var thumbR = TChart.createThumb(
                 options.sliderHeight,
                 0,
-                options.sliderWidth - options.thumbWidth - options.thumbWidth,
-                TChart.components.thumb);
+                TChart.class.thumb);
 
-            var thumbs = [thumbL, thumbR];
+            thumbR.style.width = options.thumbWidth + "px";
+            thumbR.style.left = "100%";
+
+            thumbM.onmousedown = function(e) {
+                self.running = true;
+
+                var thumbMCoords = TChart.getCoords(thumbM);
+                var sliderCoords = TChart.getCoords(slider);
+
+                var shiftX = e.pageX - thumbMCoords.left;
+
+                document.onmousemove = function(e) {
+                    self.running = true;
+
+                    var left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
+                    var width = Math.round(thumbMCoords.width / options.sliderWidth * 100);
+
+                    if (left <= 0) { left = 0; }
+                    if (left >= 100 - width) { left = 100 - width; }
+
+                    thumbM.style.left = left + '%';
+                    thumbL.style.left = left + '%';
+                    thumbR.style.left = left + width + '%';
+
+                    self.x1 = left / 100;
+                    self.x2 = (left + width) / 100;
+                };
+
+                document.onmouseup = function() {
+                    self.running = false;
+                    document.onmousemove = document.onmouseup = null;
+                };
+
+                return false;
+            };
 
             thumbL.onmousedown = function(e) {
                 self.running = true;
 
-                var sliderCoords = TChart.getCoords(canvas);
                 var thumbLCoords = TChart.getCoords(thumbL);
-                var thumbRCoords = TChart.getCoords(thumbR);
+                var sliderCoords = TChart.getCoords(slider);
 
                 var shiftX = e.pageX - thumbLCoords.left;
 
                 document.onmousemove = function(e) {
                     self.running = true;
 
-                    var newLeft = e.pageX - shiftX - sliderCoords.left;
-                    if (newLeft <= 0) {
-                        newLeft = 0;
-                    }
-                    var rightEdge = thumbRCoords.left - thumbLCoords.width - sliderCoords.left;
-                    if (newLeft >= rightEdge) {
-                        newLeft = rightEdge;
-                    }
+                    var left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
 
-                    thumbL.style.left = newLeft + 'px';
+                    if (left <= 0) { left = 0; }
+                    if (left >= 100) { left = 100; }
 
-                    self.x1 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
+                    thumbL.style.left = left + '%';
+                    thumbM.style.left = left + '%';
+                    thumbM.style.width = parseInt(thumbR.style.left.slice(0, thumbR.style.left.length - 1)) - left + '%';
+
+                    self.x1 = left / 100;
                 };
 
                 document.onmouseup = function() {
@@ -461,30 +498,23 @@
             thumbR.onmousedown = function(e) {
                 self.running = true;
 
-                var sliderCoords = TChart.getCoords(canvas);
-                var thumbLCoords = TChart.getCoords(thumbL);
                 var thumbRCoords = TChart.getCoords(thumbR);
+                var sliderCoords = TChart.getCoords(slider);
 
-                var shiftX = e.pageX - thumbRCoords.left + thumbLCoords.width;
+                var shiftX = e.pageX - thumbRCoords.left;
 
                 document.onmousemove = function(e) {
                     self.running = true;
 
-                    var newLeft = e.pageX - shiftX - sliderCoords.left;
+                    var left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
 
-                    var leftEdge = thumbLCoords.left - sliderCoords.left;
-                    if (newLeft <= leftEdge) {
-                        newLeft = leftEdge;
-                    }
+                    if (left <= 0) { left = 0; }
+                    if (left >= 100) { left = 100; }
 
-                    var rightEdge = canvas.offsetWidth - thumbL.offsetWidth - thumbR.offsetWidth;
-                    if (newLeft >= rightEdge) {
-                        newLeft = rightEdge;
-                    }
+                    thumbR.style.left = left + '%';
+                    thumbM.style.width = left - parseInt(thumbL.style.left.slice(0, thumbL.style.left.length - 1)) + '%';
 
-                    thumbR.style.left = newLeft + 'px';
-
-                    self.x2 = newLeft / (options.sliderWidth - 2 * options.thumbWidth);
+                    self.x2 = left / 100;
                 };
 
                 document.onmouseup = function() {
@@ -495,6 +525,8 @@
                 return false;
             };
 
+            var thumbs = [thumbM, thumbL, thumbR];
+
             for (var i = 0; i < thumbs.length; i++) {
                 var thumb = thumbs[i];
 
@@ -503,10 +535,10 @@
                     return false;
                 };
 
-                container.appendChild(thumb);
+                slider.appendChild(thumb);
             }
 
-            return container;
+            return slider;
         },
 
         /**
@@ -514,13 +546,13 @@
          *
          * @returns {HTMLElement}
          */
-        drawCheckboxes: function() {
+        drawCheckboxes: function(options) {
             var container = TChart.createDiv(
                 options.sliderWidth,
                 options.sliderHeight,
                 -options.sliderHeight - options.canvasHeight + 15,
                 0,
-                TChart.components.checkboxContainer);
+                TChart.class.checkboxContainer);
 
             var self = this;
             var charts = this.charts;
@@ -665,6 +697,16 @@
         return elem;
     };
 
+    TChart.createThumb = function(height, top, className) {
+        var elem = document.createElement("div");
+
+        elem.className = className;
+        elem.style.height = height + "px";
+        elem.style.top = top + "px";
+
+        return elem;
+    };
+
     TChart.createCheckbox = function(id, title, color) {
         var label = document.createElement("label");
 
@@ -696,7 +738,7 @@
 
         return {
             top: box.top + pageYOffset,
-            left: box.left + pageXOffset,
+            left: box.left + pageYOffset,
             width: box.width
         };
 
@@ -718,6 +760,16 @@
 
         css.href = options.cssPath;
         document.getElementsByTagName("head")[0].appendChild(css);
+    };
+
+    TChart.loadOptions = function(options) {
+        options = options || {};
+        for (var k in TChart.defaults) {
+            if (!options.hasOwnProperty(k)) {
+                options[k] = TChart.defaults[k];
+            }
+        }
+        return options;
     };
 
     return TChart;

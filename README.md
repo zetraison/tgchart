@@ -12,7 +12,7 @@ Let's get started using TChart.js. First, we need to have a div in our page.
 Now that we have a div we can use, we need to include TChart.js in our page.
 
 ```html
-<script src="lib/tchart.js"></script>
+<script src="src/tchart.js"></script>
 ```
 
 Now, we can create a chart. We add a script to our page:
@@ -48,9 +48,7 @@ var options = {
     sliderWidth: 400,
     sliderHeight: 50,
 
-    thumbWidth: 10,
-    thumbHeight: 50,
-
-    fps: 60
 };
+
+new TChart("myChart", data, options);
 ```

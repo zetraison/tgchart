@@ -61,7 +61,7 @@
     TChart.version = "0.1";
 
     TChart.defaults = {
-        cssPath: "src/css/style.css",
+        cssPath: "../css/style.css",
         canvasWidth: 400,
         canvasHeight: 400,
 
@@ -738,7 +738,7 @@
 
         return {
             top: box.top + pageYOffset,
-            left: box.left + pageYOffset,
+            left: box.left + pageXffset,
             width: box.width
         };
 

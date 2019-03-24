@@ -10,7 +10,7 @@
 .thumb {
     position: absolute;
     cursor: pointer;
-    background: gray;
+    background: rgba(125, 125, 125, 0.6);
     display: inline;
 }
 
@@ -19,7 +19,8 @@
     cursor: pointer;
     background: transparent;
     display: inline;
-    border: 2px solid grey;
+    border-top: 2px solid rgba(125, 125, 125, 0.6);
+    border-bottom: 2px solid rgba(125, 125, 125, 0.6);
     opacity: 0.5;
 }
 

@@ -176,8 +176,10 @@
 
                 sliderContext.clearRect(0, 0, sliderContext.canvas.width, sliderContext.canvas.height);
                 canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+                canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
 
                 this.drawCharts(sliderContext, canvasContext, options);
+                this.drawAxes(canvasContext, options);
 
                 canvasContext.restore();
             }
@@ -193,6 +195,7 @@
          */
         updateScene: function(sliderContext, canvasContext, gridContext, options) {
             this.drawGrid(gridContext, options);
+            this.drawAxes(canvasContext, options);
             this.drawCharts(sliderContext, canvasContext, options);
 
             this.fpsInterval = 1000 / options.fps;
@@ -268,10 +271,9 @@
          * @param active
          * @param minY
          * @param maxY
-         * @param legend
          * @param options
          */
-        drawChart: function(context, points, color, active, minY, maxY, legend, options) {
+        drawChart: function(context, points, color, active, minY, maxY, options) {
             context.beginPath();
 
             this.alpha += this.delta;
@@ -297,11 +299,6 @@
 
                 context.moveTo(x1, y1);
                 context.lineTo(x2, y2);
-
-                // if (legent && j % 10 === 0) {
-                //     context.fillText(x2, x1,  context.canvas.height - 5);
-                //     context.font = options.font;
-                // }
             }
 
             context.strokeStyle = color;
@@ -321,7 +318,6 @@
 
             var allPoints = TChart.getChartsPoints(charts);
 
-            var minY = TChart.getMinExtremum(allPoints);
             var maxY = TChart.getMaxExtremum(allPoints);
 
             for (var i = 0; i < charts.length; i++) {
@@ -329,11 +325,31 @@
                 var chart = charts[i];
                 var points = TChart.getChartPoints(chart.points, this.x1, this.x2);
 
-                this.drawChart(sliderContext, chart.points, chart.color, chart.active, minY, maxY, false, options);
-                this.drawChart(canvasContext, points, chart.color, chart.active, minY, maxY, true, options);
+                this.drawChart(sliderContext, chart.points, chart.color, chart.active, 0, maxY, options);
+                this.drawChart(canvasContext, points, chart.color, chart.active, 0, maxY, options);
             }
+        },
 
-            //this.drawYAxisTickMarks(canvasContext, minY, maxY, options);
+        /**
+         * Draw axes
+         *
+         * @param context
+         * @param options
+         */
+        drawAxes: function(context, options) {
+            var charts = this.charts;
+
+            console.log('axes');
+
+            var points = TChart.getChartsPointsFiltered(charts, this.x1, this.x2);
+
+            var minX = TChart.getMinXPoint(points);
+            var maxX = TChart.getMaxXPoint(points);
+            var minY = TChart.getMinExtremum(points);
+            var maxY = TChart.getMaxExtremum(points);
+
+            this.drawXAxisTickMarks(context, minX, maxX, options);
+            this.drawYAxisTickMarks(context, minY, maxY, options);
         },
 
         /**
@@ -357,7 +373,7 @@
         },
 
         /**
-         * Draw x axis tick marks
+         * Draw X axis tick marks
          *
          * @param context
          * @param minX
@@ -366,13 +382,14 @@
          */
         drawXAxisTickMarks: function(context, minX, maxX, options) {
             var gridCount = options.gridCount;
-            var step = Math.round(context.canvas.width / gridCount);
+            var step = Math.round(context.canvas.width / 5);
+
+            var stepValue = Math.round((maxX - minX) / gridCount);
 
             for (var i = 0; i < gridCount; i++) {
-                context.fillText(i, i * step + 10, context.canvas.height - 5);
+                var value = TChart.timestampToDate(minX + stepValue * i);
+                context.fillText(value, i * step, context.canvas.width - 5);
             }
-
-            context.font = options.font;
         },
 
         /**
@@ -387,11 +404,20 @@
             var gridCount = options.gridCount;
             var step = Math.round(context.canvas.height / gridCount);
 
-            for (var i = 0; i < gridCount; i++) {
-                context.fillText(i, 0, context.canvas.height - i * step - 25);
-            }
+            var stepValue = Math.round((maxY - minY) / gridCount);
 
-            context.font = options.font;
+            for (var i = 0; i < gridCount; i++) {
+
+                var value = stepValue * i;
+
+                if (value > 1000) {
+                    value = Math.round(value / 1000) + "K"
+                } else {
+                    value = value + "";
+                }
+
+                context.fillText(value, 0, context.canvas.height - i * step - 25);
+            }
         },
 
         /**
@@ -646,10 +672,6 @@
         return Math.max.apply(null, array);
     };
 
-    TChart.getChartsPoints = function(charts) {
-        return charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
-    };
-
     TChart.getMinExtremum = function(points) {
         return TChart.getMin(points.map(p => p.y));
     };
@@ -664,6 +686,15 @@
 
     TChart.getMaxXPoint = function(points) {
         return TChart.getMax(points.map(p => p.x));
+    };
+
+    TChart.getChartsPoints = function(charts) {
+        return charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
+    };
+
+    TChart.getChartsPointsFiltered = function(charts, x1, x2) {
+        var points = charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
+        return TChart.getChartPoints(points, x1, x2);
     };
 
     TChart.getChartPoints = function(points, x1, x2) {
@@ -773,6 +804,17 @@
             }
         }
         return options;
+    };
+
+    TChart.timestampToDate = function(timestamp) {
+        var date = new Date(timestamp);
+
+        var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        var day = date.getDay();
+        var month = date.getMonth();
+
+        return monthNames[month] + " " + day;
     };
 
     return TChart;

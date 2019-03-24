@@ -738,7 +738,7 @@
 
         return {
             top: box.top + pageYOffset,
-            left: box.left + pageXffset,
+            left: box.left + pageXOffset,
             width: box.width
         };
 

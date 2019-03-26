@@ -1,5 +1,5 @@
 # TChart
-Open source chart library
+March telegram contest 2019. Open source chart library based on canvas 2D.
 
 # Getting Started
 

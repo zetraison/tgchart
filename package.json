@@ -1,0 +1,29 @@
+{
+  "name": "tchart",
+  "version": "1.0.0",
+  "description": "Telegram contest charts",
+  "main": "tchart.js",
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zetraison/tchart.git"
+  },
+  "keywords": [
+    "charts"
+  ],
+  "author": "zetraison",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zetraison/tchart/issues"
+  },
+  "homepage": "https://github.com/zetraison/tchart#readme",
+  "devDependencies": {
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0",
+    "webpack-dev-server": "^3.2.1"
+  }
+}

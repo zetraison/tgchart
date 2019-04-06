@@ -1,69 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>TChart</title>
-    <style>
-        .chart-container {
-            display: inline-block;
-            position: relative;
-            margin: 10px;
-        }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>March Telegram Contest 2019</title>
 </head>
 <body>
 
-<script src="src/tchart.js"></script>
-
-<script>
-    function loadJSON(path, success, error) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function()
-        {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    if (success)
-                        success(JSON.parse(xhr.responseText));
-                } else {
-                    if (error)
-                        error(xhr);
-                }
-            }
-        };
-        xhr.open("GET", path, true);
-        xhr.send();
-    }
-
-    function createChart(id) {
-        var elem = document.createElement("div");
-        elem.id = id;
-        elem.className = "chart-container";
-        return elem;
-    }
-
-    loadJSON("data.json", function(data) {
-
-        var options = {
-            cssPath: "css/style.css",
-
-            canvasWidth: 350,
-            canvasHeight: 350,
-
-            sliderWidth: 350,
-            sliderHeight: 50
-        };
-
-        for (var i = 0; i < data.length; i++) {
-            var id = "chart" + i;
-
-            var chart = createChart(id);
-            document.body.appendChild(chart);
-
-            new TChart(id, data[i], options);
-        }
-    });
-
-</script>
+<script src="dist/bundle.js"></script>
 
 </body>
 </html>

@@ -1,11 +1,30 @@
 const path = require('path');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
-    entry: './src/app.js',
-    devtool: "source-map",
-    mode: 'production',
+
+    entry: {
+        "bundle": "./src/app.js",
+    },
+
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js'
+        filename: '[name].js',
+        chunkFilename: '[name].js',
+    },
+
+    optimization: {
+        minimizer: [
+            new UglifyJsPlugin({
+                cache: true,
+                parallel: true,
+                uglifyOptions: {
+                    compress: false,
+                    ecma: 6,
+                    mangle: true
+                },
+                sourceMap: false
+            })
+        ]
     }
 };

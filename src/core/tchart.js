@@ -55,7 +55,7 @@ TChart.prototype = {
      *
      * @param {Object} data
      * @param {Object} options
-     * @returns {HTMLDivElement}
+     * @returns {HTMLElement}
      */
     init: function(data, options) {
         if (
@@ -68,7 +68,6 @@ TChart.prototype = {
         }
 
         options = TChart.loadOptions(options);
-        loadCss(options);
 
         // Load chart data
         this.charts = this.getCharts(data);
@@ -78,23 +77,40 @@ TChart.prototype = {
         this.running = false;
 
         // Create UI
-        const container = document.createElement('div');
-        container.className = 'chart-container';
+        const box = document.createElement('div');
+        box.className = 'wrap';
 
-        const chartCanvas = TChart.createCanvas(options.canvasWidth, options.canvasHeight, 0, 0);
-        container.appendChild(chartCanvas);
+        const wrapChart = document.createElement("div");
+        wrapChart.className = 'wrap-chart';
 
-        const sliderCanvas = TChart.createCanvas(options.sliderWidth, options.sliderHeight, 0, 0);
-        container.appendChild(sliderCanvas);
+        let chartCanvas = document.createElement("canvas");
+        chartCanvas.className = 'canvas';
+        chartCanvas.width = wrapChart.innerWidth + 'px';
+        chartCanvas.height = wrapChart.innerHeight + 'px';
+        wrapChart.appendChild(chartCanvas);
 
-        const gridCanvas = TChart.createCanvas(options.canvasWidth, options.canvasWidth, -options.canvasHeight - options.sliderHeight, 0);
-        container.appendChild(gridCanvas);
+        let gridCanvas = document.createElement("canvas");
+        gridCanvas.className = 'canvas';
+        wrapChart.appendChild(gridCanvas);
+
+        box.appendChild(wrapChart);
+
+        let wrapControl = document.createElement("div");
+        wrapControl.className = 'wrap-control';
+        wrapControl.height = options.sliderHeight + 'px';
+
+        let sliderCanvas = document.createElement("canvas");
+        sliderCanvas.width = wrapControl.clientWidth;
+        sliderCanvas.height = wrapControl.clientHeight;
+
+        wrapControl.appendChild(sliderCanvas);
+        box.appendChild(wrapControl);
 
         const thumbs = this.drawThumbs(sliderCanvas, options);
-        container.appendChild(thumbs);
+        box.appendChild(thumbs);
 
         const checkboxes = this.drawCheckboxes(options);
-        container.appendChild(checkboxes);
+        box.appendChild(checkboxes);
 
         const canvasContext = chartCanvas.getContext("2d");
         const sliderContext = sliderCanvas.getContext("2d");
@@ -103,7 +119,7 @@ TChart.prototype = {
         // Set main animation loop
         this.updateScene(sliderContext, canvasContext, gridContext, options);
 
-        return container;
+        return box;
     },
 
     /**
@@ -380,7 +396,7 @@ TChart.prototype = {
         const slider = TChart.createDiv(
             options.sliderWidth,
             options.sliderHeight,
-            - options.sliderHeight - options.canvasHeight,
+            0,
             0,
             TChart.class.thumbContainer);
 
@@ -527,7 +543,7 @@ TChart.prototype = {
         const container = TChart.createDiv(
             options.sliderWidth,
             options.sliderHeight,
-            -options.sliderHeight - options.canvasHeight + 15,
+            0,
             0,
             TChart.class.checkboxContainer);
 
@@ -609,8 +625,8 @@ TChart.getChartsPointsFiltered = function(charts, x1, x2) {
 };
 
 TChart.getChartPoints = function(points, x1, x2) {
-    const minX = Point.minX(points.map(p => p.x));
-    const maxX = Point.maxX(points.map(p => p.x));
+    const minX = Point.minX(points);
+    const maxX = Point.maxX(points);
 
     x1 = minX + (maxX - minX) * x1;
     x2 = minX + (maxX - minX) * x2;
@@ -620,13 +636,7 @@ TChart.getChartPoints = function(points, x1, x2) {
 
 TChart.createCanvas = function(width, height, top, left) {
     let canvas = document.createElement("canvas");
-
     canvas.className = "canvas";
-    canvas.width = width;
-    canvas.height = height;
-    canvas.style.top = top + "px";
-    canvas.style.left = left + "px";
-
     return canvas;
 };
 

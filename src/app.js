@@ -1,5 +1,5 @@
 import {TChart} from './core/tchart';
-import {loadJson} from './helpers';
+import {loadCss, loadJson} from './helpers';
 
 const options = {
     cssPath: "css/style.css",
@@ -11,7 +11,11 @@ const options = {
     sliderHeight: 50
 };
 
-const drawCharts = arr => arr.forEach(data => document.body.appendChild(new TChart(data, options)));
+const wrap = document.createElement('div');
+wrap.className = 'wrap-main';
+document.body.appendChild(wrap);
+
+const drawCharts = arr => arr.forEach(data => wrap.appendChild(new TChart(data, options)));
 
 // Entry point
-loadJson("data.json", drawCharts);
+loadCss("css/style.css", () => loadJson("data.json", drawCharts));

@@ -24,16 +24,34 @@ body {
     box-sizing: border-box;
 }
 
-.wrap-control {
+.wrap-control, .wrap-legend {
     position: relative;
     height: 50px;
 }
 
-.wrap-chart canvas, .wrap-control canvas {
-    width: 100%;
-    height: 100%;
+.control {
     position: absolute;
-    border: 1px solid lightsalmon;
+    top: 0;
+    display: flex;
+    width: 100%;
+    height: 50px;
+}
+
+.window {
+    z-index: 1;
+    border-style: solid;
+    border-width: 1px 4px;
+    box-sizing: border-box;
+    cursor: ew-resize;
+    border-color: rgba(185,213,231,.5);
+}
+
+.overlay {
+    background: rgba(242,247,250,.75);
+}
+
+.control .overlay, .control .window {
+    will-change: width;
 }
 
 .wrap-chart {
@@ -41,30 +59,10 @@ body {
     height: 250px;
 }
 
-.thumb-container {
-    position: relative;
-}
-
-.thumb {
+.wrap-chart canvas, .wrap-control canvas {
+    width: 100%;
+    height: 100%;
     position: absolute;
-    cursor: pointer;
-    background: rgba(125, 125, 125, 0.6);
-    display: inline;
-}
-
-.thumb-middle {
-    position: absolute;
-    cursor: pointer;
-    background: transparent;
-    display: inline;
-    border-top: 2px solid rgba(125, 125, 125, 0.6);
-    border-bottom: 2px solid rgba(125, 125, 125, 0.6);
-    opacity: 0.5;
-}
-
-.checkbox-container {
-    position: relative;
-    display: block;
 }
 
 .container {

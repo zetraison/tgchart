@@ -9,8 +9,9 @@
  * {@link           https://github.com/zetraison/tchart}
  *
  */
-import {Exception, loadCss, timestampToDate} from '../helpers';
+import {Dom, Exception, timestampToDate} from '../helpers';
 import {Point, Chart} from '../models';
+import {Control} from './controls';
 
 export const TChart = function (data, options) {
     return this.init(data, options);
@@ -19,7 +20,6 @@ export const TChart = function (data, options) {
 TChart.version = "0.1";
 
 TChart.defaults = {
-    cssPath: "../css/style.css",
     canvasWidth: 400,
     canvasHeight: 400,
     canvasBottom: 20,
@@ -77,49 +77,39 @@ TChart.prototype = {
         this.running = false;
 
         // Create UI
-        const box = document.createElement('div');
-        box.className = 'wrap';
+        const chartCanvas = Dom.from("canvas").addClasses("chart")
+            .setAttribute("width", 460)
+            .setAttribute("height", 250);
 
-        const wrapChart = document.createElement("div");
-        wrapChart.className = 'wrap-chart';
+        const gridCanvas = Dom.from("canvas").addClasses("grid")
+            .setAttribute("width", 460)
+            .setAttribute("height", 250);
 
-        let chartCanvas = document.createElement("canvas");
-        chartCanvas.className = 'canvas';
-        chartCanvas.width = wrapChart.innerWidth + 'px';
-        chartCanvas.height = wrapChart.innerHeight + 'px';
-        wrapChart.appendChild(chartCanvas);
+        const wrapChart = Dom.from("div").addClasses("wrap-chart")
+            .append(chartCanvas)
+            .append(gridCanvas);
 
-        let gridCanvas = document.createElement("canvas");
-        gridCanvas.className = 'canvas';
-        wrapChart.appendChild(gridCanvas);
+        const sliderCanvas = Dom.from("canvas").addClasses("canvas")
+            .setAttribute("width", 460)
+            .setAttribute("height", 70);
 
-        box.appendChild(wrapChart);
+        const wrapControl = new Control()
+            .append(sliderCanvas);
 
-        let wrapControl = document.createElement("div");
-        wrapControl.className = 'wrap-control';
-        wrapControl.height = options.sliderHeight + 'px';
+        const wrapLegend = this.drawCheckboxes(options);
 
-        let sliderCanvas = document.createElement("canvas");
-        sliderCanvas.width = wrapControl.clientWidth;
-        sliderCanvas.height = wrapControl.clientHeight;
+        const canvasContext = chartCanvas.element.getContext("2d");
+        const sliderContext = sliderCanvas.element.getContext("2d");
+        const gridContext = gridCanvas.element.getContext("2d");
 
-        wrapControl.appendChild(sliderCanvas);
-        box.appendChild(wrapControl);
+        const box = Dom.from("div").addClasses("wrap")
+            .append(wrapChart)
+            .append(wrapControl)
+            .append(wrapLegend);
 
-        const thumbs = this.drawThumbs(sliderCanvas, options);
-        box.appendChild(thumbs);
-
-        const checkboxes = this.drawCheckboxes(options);
-        box.appendChild(checkboxes);
-
-        const canvasContext = chartCanvas.getContext("2d");
-        const sliderContext = sliderCanvas.getContext("2d");
-        const gridContext = gridCanvas.getContext("2d");
-
-        // Set main animation loop
         this.updateScene(sliderContext, canvasContext, gridContext, options);
 
-        return box;
+        return box.element;
     },
 
     /**
@@ -385,167 +375,14 @@ TChart.prototype = {
     },
 
     /**
-     * Draw slider thumbs
-     *
-     * @param canvas
-     * @param options
-     * @returns {HTMLElement}
-     */
-    drawThumbs: function (canvas, options) {
-        let self = this;
-        const slider = TChart.createDiv(
-            options.sliderWidth,
-            options.sliderHeight,
-            0,
-            0,
-            TChart.class.thumbContainer);
-
-        const thumbM = TChart.createThumb(
-            options.sliderHeight - 4,
-            0,
-            TChart.class.thumbMiddle);
-
-        thumbM.style.width = "100%";
-
-        const thumbL = TChart.createThumb(
-            options.sliderHeight,
-            0,
-            TChart.class.thumb);
-
-
-        thumbL.style.width = options.thumbWidth + "px";
-        thumbL.style.left = "0%";
-
-        const thumbR = TChart.createThumb(
-            options.sliderHeight,
-            0,
-            TChart.class.thumb);
-
-        thumbR.style.width = options.thumbWidth + "px";
-        thumbR.style.left = "100%";
-
-        thumbM.onmousedown = function(e) {
-            self.running = true;
-
-            const thumbMCoords = TChart.getCoords(thumbM);
-            const sliderCoords = TChart.getCoords(slider);
-
-            const shiftX = e.pageX - thumbMCoords.left;
-
-            document.onmousemove = function(e) {
-                self.running = true;
-
-                let left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
-                const width = Math.round(thumbMCoords.width / options.sliderWidth * 100);
-
-                if (left <= 0) { left = 0; }
-                if (left >= 100 - width) { left = 100 - width; }
-
-                thumbM.style.left = left + '%';
-                thumbL.style.left = left + '%';
-                thumbR.style.left = left + width + '%';
-
-                self.x1 = left / 100;
-                self.x2 = (left + width) / 100;
-            };
-
-            document.onmouseup = function() {
-                self.running = false;
-                document.onmousemove = document.onmouseup = null;
-            };
-
-            return false;
-        };
-
-        thumbL.onmousedown = function(e) {
-            self.running = true;
-
-            const thumbLCoords = TChart.getCoords(thumbL);
-            const sliderCoords = TChart.getCoords(slider);
-
-            const shiftX = e.pageX - thumbLCoords.left;
-
-            document.onmousemove = function(e) {
-                self.running = true;
-
-                let left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
-
-                if (left <= 0) { left = 0; }
-                if (left >= 100) { left = 100; }
-
-                thumbL.style.left = left + '%';
-                thumbM.style.left = left + '%';
-                thumbM.style.width = parseInt(thumbR.style.left.slice(0, thumbR.style.left.length - 1)) - left + '%';
-
-                self.x1 = left / 100;
-            };
-
-            document.onmouseup = function() {
-                self.running = false;
-                document.onmousemove = document.onmouseup = null;
-            };
-
-            return false;
-        };
-
-        thumbR.onmousedown = function(e) {
-            self.running = true;
-
-            const thumbRCoords = TChart.getCoords(thumbR);
-            const sliderCoords = TChart.getCoords(slider);
-
-            const shiftX = e.pageX - thumbRCoords.left;
-
-            document.onmousemove = function(e) {
-                self.running = true;
-
-                let left = Math.round((e.pageX - shiftX - sliderCoords.left) / sliderCoords.width * 100);
-
-                if (left <= 0) { left = 0; }
-                if (left >= 100) { left = 100; }
-
-                thumbR.style.left = left + '%';
-                thumbM.style.width = left - parseInt(thumbL.style.left.slice(0, thumbL.style.left.length - 1)) + '%';
-
-                self.x2 = left / 100;
-            };
-
-            document.onmouseup = function() {
-                self.running = false;
-                document.onmousemove = document.onmouseup = null;
-            };
-
-            return false;
-        };
-
-        const thumbs = [thumbM, thumbL, thumbR];
-
-        for (let i = 0; i < thumbs.length; i++) {
-            const thumb = thumbs[i];
-
-            thumb.ondragstart = function() {
-                self.running = true;
-                return false;
-            };
-
-            slider.appendChild(thumb);
-        }
-
-        return slider;
-    },
-
-    /**
      * Draw checkboxes component
      *
      * @returns {HTMLElement}
      */
     drawCheckboxes: function(options) {
-        const container = TChart.createDiv(
-            options.sliderWidth,
-            options.sliderHeight,
-            0,
-            0,
-            TChart.class.checkboxContainer);
+        const container = Dom.from("div")
+            .addClasses("wrap-legend")
+            .setAttribute("height", options.sliderHeight);
 
         let self = this;
         const charts = this.charts;
@@ -585,7 +422,7 @@ TChart.prototype = {
                 self.running = false;
             };
 
-            container.appendChild(checkbox);
+            container.append(checkbox);
         }
 
         return container;
@@ -632,34 +469,6 @@ TChart.getChartPoints = function(points, x1, x2) {
     x2 = minX + (maxX - minX) * x2;
 
     return points.filter(p => p.x >= x1 && p.x <= x2);
-};
-
-TChart.createCanvas = function(width, height, top, left) {
-    let canvas = document.createElement("canvas");
-    canvas.className = "canvas";
-    return canvas;
-};
-
-TChart.createDiv = function(width, height, top, left, className) {
-    let elem = document.createElement("div");
-
-    elem.className = className;
-    elem.style.width = width + "px";
-    elem.style.height = height + "px";
-    elem.style.top = top + "px";
-    elem.style.left = left + "px";
-
-    return elem;
-};
-
-TChart.createThumb = function(height, top, className) {
-    let elem = document.createElement("div");
-
-    elem.className = className;
-    elem.style.height = height + "px";
-    elem.style.top = top + "px";
-
-    return elem;
 };
 
 TChart.createCheckbox = function(id, title, color) {

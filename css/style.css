@@ -44,10 +44,19 @@ body {
     box-sizing: border-box;
     cursor: ew-resize;
     border-color: rgba(185,213,231,.5);
+    width: 25%;
 }
 
 .overlay {
     background: rgba(242,247,250,.75);
+}
+
+.overlay.l {
+    width: 75%;
+}
+
+.overlay.r {
+    width: 0;
 }
 
 .control .overlay, .control .window {

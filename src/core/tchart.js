@@ -77,6 +77,8 @@ TChart.prototype = {
         this.running = false;
 
         // Create UI
+        const wrapChart = Dom.from("div").addClasses("wrap-chart");
+
         const chartCanvas = Dom.from("canvas").addClasses("chart")
             .setAttribute("width", 460)
             .setAttribute("height", 250);
@@ -85,7 +87,7 @@ TChart.prototype = {
             .setAttribute("width", 460)
             .setAttribute("height", 250);
 
-        const wrapChart = Dom.from("div").addClasses("wrap-chart")
+        wrapChart
             .append(chartCanvas)
             .append(gridCanvas);
 
@@ -93,8 +95,11 @@ TChart.prototype = {
             .setAttribute("width", 460)
             .setAttribute("height", 70);
 
-        const wrapControl = new Control()
-            .append(sliderCanvas);
+        let control = new Control((l, r) => console.log(l, r));
+
+        const wrapControl = Dom.from("div").addClasses("wrap-control")
+            .append(sliderCanvas)
+            .append(control);
 
         const wrapLegend = this.drawCheckboxes(options);
 
@@ -110,6 +115,10 @@ TChart.prototype = {
         this.updateScene(sliderContext, canvasContext, gridContext, options);
 
         return box.element;
+    },
+
+    onStep(left, right) {
+
     },
 
     /**
@@ -182,7 +191,7 @@ TChart.prototype = {
      * Get charts data
      *
      * @param data
-     * @returns {Array<TChart.Chart>}
+     * @returns {Array<Chart>}
      */
     getCharts: function(data) {
         const columns = data["columns"],
@@ -277,8 +286,8 @@ TChart.prototype = {
             const chart = charts[i];
             const points = TChart.getChartPoints(chart.points, this.x1, this.x2);
 
-            this.drawChart(sliderContext, chart.points, chart.color, chart.active, 0, maxY, options);
-            this.drawChart(canvasContext, points, chart.color, chart.active, 0, maxY, options);
+            this.drawChart(sliderContext, chart.points, chart.color, chart.visible, 0, maxY, options);
+            this.drawChart(canvasContext, points, chart.color, chart.visible, 0, maxY, options);
         }
     },
 
@@ -445,7 +454,7 @@ TChart.prototype = {
      * Get charts by ID
      * @param charts
      * @param id
-     * @returns {TChart.Chart}
+     * @returns {Chart}
      */
     getChartByID: function(charts, id) {
         return charts.filter(c => c.id === id)[0];

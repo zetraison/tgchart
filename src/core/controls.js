@@ -1,65 +1,60 @@
-import {Dom, touchHandler} from "../helpers";
+import {Dom, limit, touchHandler} from "../helpers";
 
 export class Control {
-    constructor() {
+    constructor(callback) {
 
-        const omMouseDown = e => {
-            e.preventDefault();
-
-            const controlRect = control.element.getBoundingClientRect();
-            const windowRect = window.element.getBoundingClientRect();
-
-            const shiftX = Math.round(e.pageX - windowRect.left);
-
-            const omMouseMove = e => {
-                e.preventDefault();
-
-                let cursor = Math.round(e.pageX - shiftX - controlRect.left);
-
-                if (cursor < 0)
-                    cursor = 0;
-                if (cursor > controlRect.width - windowRect.width)
-                    cursor = controlRect.width - windowRect.width;
-
-                console.log(e.pageX, shiftX, cursor, controlRect.width - cursor);
-
-                window.setStyle("width", windowRect.width + "px");
-                overlayL.setStyle("width", cursor + "px");
-                overlayR.setStyle("width", controlRect.width - cursor - windowRect.width + "px");
-
-                return false;
-            };
-
-            const omMouseUp = e => {
-                e.preventDefault();
-
-                document.removeEventListener("mousemove", omMouseMove, true);
-                document.removeEventListener("mouseup", omMouseUp, true);
-            };
-
-            document.addEventListener("mousemove", omMouseMove, true);
-            document.addEventListener("mouseup", omMouseUp, true);
-        };
-
-        const overlayL = Dom.from("div").addClasses("overlay l")
-            .setStyle("width", "75%");
-
-        const overlayR = Dom.from("div").addClasses("overlay r");
-
-        const window = Dom.from("div").addClasses("window")
+        this.control = Dom.from("div").addClasses("control");
+        this.overlayL = Dom.from("div").addClasses("overlay l");
+        this.overlayR = Dom.from("div").addClasses("overlay r");
+        this.window = Dom.from("div").addClasses("window")
             .addEventListener("touchstart", touchHandler, true)
             .addEventListener("touchmove", touchHandler, true)
             .addEventListener("touchend", touchHandler, true)
-            .addEventListener("mousedown", omMouseDown, true)
-            .setStyle("width", "25%");
+            .addEventListener("mousedown", this.onMouseDown.bind(this, callback), true);
 
-       const control = Dom.from("div")
-            .addClasses("control")
-            .append(overlayL)
-            .append(window)
-            .append(overlayR);
+        this.control
+            .append(this.overlayL)
+            .append(this.window)
+            .append(this.overlayR);
 
-        return Dom.from("div").addClasses("wrap-control")
-            .append(control);
+        return this.control;
     }
+
+    onMouseDown (callback, event) {
+        event.preventDefault();
+
+        const controlRect = this.control.element.getBoundingClientRect();
+        const windowRect = this.window.element.getBoundingClientRect();
+
+        const shiftX = Math.round(event.pageX - windowRect.left);
+
+        const onMouseMove = e => {
+            e.preventDefault();
+
+            let min = 0;
+            let max = controlRect.width - windowRect.width;
+            let value = Math.round(e.pageX - shiftX - controlRect.left);
+
+            const cursor = limit(value, min, max);
+
+            const left = Math.round(cursor / controlRect.width * 100);
+            const right = Math.round((cursor + windowRect.width) / controlRect.width * 100);
+
+            this.window.setStyle("width", windowRect.width + "px");
+            this.overlayL.setStyle("width", cursor + "px");
+            this.overlayR.setStyle("width", controlRect.width - cursor - windowRect.width + "px");
+
+            callback(left, right);
+        };
+
+        const onMouseUp = e => {
+            e.preventDefault();
+
+            document.removeEventListener("mousemove", onMouseMove, true);
+            document.removeEventListener("mouseup", onMouseUp, true);
+        };
+
+        document.addEventListener("mousemove", onMouseMove, true);
+        document.addEventListener("mouseup", onMouseUp, true);
+    };
 }

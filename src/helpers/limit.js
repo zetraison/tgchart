@@ -1,0 +1,1 @@
+export const limit = (value, min, max) => value < min ? min : value > max ? max : value;

@@ -64,9 +64,9 @@ export class Dom {
         });
     }
 
-    setStyle(prop, value) {
+    setStyle(prop, value, unit) {
         return this.map(el => {
-            el.style.setProperty(prop, value);
+            el.style.setProperty(prop, `${value}${unit}`);
             return el;
         })
     }

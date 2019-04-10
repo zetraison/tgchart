@@ -117,10 +117,6 @@ TChart.prototype = {
         return box.element;
     },
 
-    onStep(left, right) {
-
-    },
-
     /**
      * Main animation loop
      *

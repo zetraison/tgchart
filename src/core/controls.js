@@ -40,9 +40,9 @@ export class Control {
             const left = Math.round(cursor / controlRect.width * 100);
             const right = Math.round((cursor + windowRect.width) / controlRect.width * 100);
 
-            this.window.setStyle("width", windowRect.width + "px");
-            this.overlayL.setStyle("width", cursor + "px");
-            this.overlayR.setStyle("width", controlRect.width - cursor - windowRect.width + "px");
+            this.window.setStyle("width", windowRect.width,"px");
+            this.overlayL.setStyle("width", cursor, "px");
+            this.overlayR.setStyle("width", controlRect.width - cursor - windowRect.width, "px");
 
             callback(left, right);
         };

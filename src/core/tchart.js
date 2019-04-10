@@ -9,7 +9,7 @@
  * {@link           https://github.com/zetraison/tchart}
  *
  */
-import {Dom, Exception, timestampToDate} from '../helpers';
+import {animate, Dom, Exception, timestampToDate} from '../helpers';
 import {Point, Chart} from '../models';
 import {Control} from './controls';
 
@@ -77,6 +77,8 @@ TChart.prototype = {
         this.running = false;
 
         // Create UI
+        const title = Dom.from("h2").setText(`Chart ${0}`);
+
         const wrapChart = Dom.from("div").addClasses("wrap-chart");
 
         const chartCanvas = Dom.from("canvas").addClasses("chart")
@@ -95,7 +97,45 @@ TChart.prototype = {
             .setAttribute("width", 460)
             .setAttribute("height", 70);
 
-        let control = new Control((l, r) => console.log(l, r));
+        const canvasContext = chartCanvas.element.getContext("2d");
+        const sliderContext = sliderCanvas.element.getContext("2d");
+        const gridContext = gridCanvas.element.getContext("2d");
+
+        const self = this;
+
+        //self.drawCharts(sliderContext, canvasContext, options);
+
+        const allPoints = TChart.getChartsPoints(this.charts);
+        const maxY = Point.maxY(allPoints);
+
+        for (let i = 0; i < this.charts.length; i++) {
+
+            const chart = this.charts[i];
+
+            this.drawChart(sliderContext, chart.points, chart.color, chart.visible, 0, maxY, options);
+            this.drawChart(canvasContext, chart.points, chart.color, chart.visible, 0, maxY, options);
+        }
+
+        let control = new Control((l, r) => {
+
+            animate({
+                duration: 1000,
+                timing: function(timeFraction) {
+                    return timeFraction;
+                },
+                draw: function(progress) {
+                    canvasContext.setTransform(1, 0, 0, 1, 0, 0);
+                    canvasContext.clearRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+
+                    canvasContext.translate(l * canvasContext.canvas.width / 100, 0);
+                    canvasContext.scale(1, 1);
+                    canvasContext.translate(l * canvasContext.canvas.width / 100, 0);
+
+                    self.drawCharts(sliderContext, canvasContext, options);
+                }
+            });
+
+        });
 
         const wrapControl = Dom.from("div").addClasses("wrap-control")
             .append(sliderCanvas)
@@ -103,16 +143,13 @@ TChart.prototype = {
 
         const wrapLegend = this.drawCheckboxes(options);
 
-        const canvasContext = chartCanvas.element.getContext("2d");
-        const sliderContext = sliderCanvas.element.getContext("2d");
-        const gridContext = gridCanvas.element.getContext("2d");
-
         const box = Dom.from("div").addClasses("wrap")
+            .append(title)
             .append(wrapChart)
             .append(wrapControl)
             .append(wrapLegend);
 
-        this.updateScene(sliderContext, canvasContext, gridContext, options);
+        //this.updateScene(sliderContext, canvasContext, gridContext, options);
 
         return box.element;
     },

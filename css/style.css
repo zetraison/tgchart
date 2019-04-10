@@ -8,6 +8,10 @@ body {
     padding: 0;
 }
 
+h2 {
+    font: 20px bold HelveticaNeue-Light,Helvetica,sans-serif;
+}
+
 .wrap-main {
     display: flex;
     justify-content: space-evenly;

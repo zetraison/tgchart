@@ -1,17 +1,25 @@
-import {TChart} from './core/tchart';
-import {loadJson} from './helpers';
+import {TChart, ThemeButton} from './core';
+import {getCharts} from './data/getCharts';
+import {Dom, loadCss, loadJson} from './helpers';
 
-const options = {
-    cssPath: "css/style.css",
 
-    canvasWidth: 350,
-    canvasHeight: 350,
+window.addEventListener('load', () => {
+    loadCss("./css/style.css", () => {
+        loadJson("data/chart_data.json", (chartsData) => {
+            const body = Dom.for('body').addClasses('night');
 
-    sliderWidth: 350,
-    sliderHeight: 50
-};
+            // Create main chart wrapper
+            const wrapMain = Dom.from("div").addClasses("wrap-main").pinTo(body);
 
-const drawCharts = arr => arr.forEach(data => document.body.appendChild(new TChart(data, options)));
+            chartsData.forEach(data => {
+                // Load chart data
+                const charts = getCharts(data);
 
-// Entry point
-loadJson("data.json", drawCharts);
+                // Create chart and pin to main wrapper
+                new TChart(wrapMain, charts);
+            });
+
+            new ThemeButton(body);
+        });
+    });
+});

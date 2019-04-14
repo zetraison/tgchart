@@ -1,25 +1,17 @@
-export const animate = () => {
-    let lastTime = 0;
-    let currTime, timeToCall, id;
-    const vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x]+'RequestAnidevtool: "source-map",mationFrame'];
-        window.cancelAnimationFrame =
-            window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-    }
-    if (!window.requestAnimationFrame) {
-        window.requestAnimationFrame = function(callback) {
-            currTime = Date.now();
-            timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            id = window.setTimeout(function() { callback(currTime + timeToCall); },
-                timeToCall);
-            lastTime = currTime + timeToCall;
-            return id;
-        };
-    }
-    if (!window.cancelAnimationFrame) {
-        window.cancelAnimationFrame = function(id) {
-            clearTimeout(id);
-        };
-    }
+export const animate = options =>  {
+    let start = performance.now();
+
+    requestAnimationFrame(function animate(time) {
+        let timeFraction = (time - start) / options.duration;
+        if (timeFraction > 1) timeFraction = 1;
+
+        let progress = options.timing(timeFraction);
+
+        options.draw(progress);
+
+        if (timeFraction < 1) {
+            requestAnimationFrame(animate);
+        }
+
+    });
 };

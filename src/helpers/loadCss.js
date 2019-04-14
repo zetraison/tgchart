@@ -1,4 +1,4 @@
-export const loadCss = (options, callback) => {
+export const loadCss = (path, callback) => {
     callback   = callback || function() {};
 
     const css = document.createElement("link");
@@ -8,6 +8,6 @@ export const loadCss = (options, callback) => {
         callback();
     };
 
-    css.href = options.cssPath;
+    css.href = path;
     document.getElementsByTagName("head")[0].appendChild(css);
 };

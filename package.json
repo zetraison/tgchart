@@ -4,8 +4,9 @@
   "description": "Telegram contest charts",
   "main": "tchart.js",
   "scripts": {
-    "build": "webpack",
-    "start": "webpack --watch",
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production --progress --hide-modules",
+    "start": "webpack-dev-server --mode development --open",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,6 +23,7 @@
   },
   "homepage": "https://github.com/zetraison/tchart#readme",
   "devDependencies": {
+    "uglifyjs-webpack-plugin": "^2.1.2",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0",
     "webpack-dev-server": "^3.2.1"

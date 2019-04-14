@@ -43,7 +43,15 @@ export class Dom {
                 }
             }
             return el;
-        })
+        });
+    }
+
+    hasClass(clazz) {
+        let hasClass = null;
+        this.map(el => {
+            hasClass = el.classList.contains(clazz)
+        });
+        return hasClass;
     }
 
     setAttribute(name, value) {
@@ -66,7 +74,7 @@ export class Dom {
 
     setStyle(prop, value, unit) {
         return this.map(el => {
-            el.style.setProperty(prop, `${value}${unit}`);
+            el.style.setProperty(prop, unit ? `${value}${unit}` : `${value}`);
             return el;
         })
     }
@@ -107,6 +115,15 @@ export class Dom {
             }
             return el;
         });
+    }
+
+    empty() {
+        return this.map(el => {
+            while (el.firstChild)
+                el.removeChild(el.firstChild);
+            return el;
+        });
+
     }
 
     addEventListener(event, handler, options) {

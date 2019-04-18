@@ -68,6 +68,7 @@ export class Chart {
 
         ctx.strokeStyle = this.color;
         ctx.lineCap = "round";
+        ctx.lineWidth = 1.5;
         ctx.stroke();
     }
 

@@ -7,51 +7,59 @@ import {Tooltip} from './tooltip';
 export class TChart {
     constructor(parent, charts) {
         this.charts = charts;
-        // Create UI
-        const wrap = Dom.from("div").addClasses("wrap").pinTo(parent);
+
+        this.createDom(parent);
+        this.resetContext();
+        this.drawCharts();
+
+        this.wrapChart.addEventListener('mousemove', this.onMouseMove.bind(this), true);
+        window.addEventListener('resize', this.onResize.bind(this), false);
+    }
+
+    createDom(parent) {
+        // Create main wrap
+        this.wrap = Dom.from("div").addClasses("wrap");
         // Create title
         const title = Dom.from('h2').setText(`Chart ${0}`);
         // Create chart
-        const wrapChart = Dom.from('div').addClasses('wrap-chart');
-        const canvasChart = Dom.from('canvas').pinTo(wrapChart);
+        this.wrapChart = Dom.from('div').addClasses('wrap-chart');
+        this.canvasView = Dom.from('canvas').pinTo(this.wrapChart);
         // Create mini map with controls
-        const wrapControl = Dom.from('div').addClasses('wrap-control');
-        const canvasControl = Dom.from('canvas').pinTo(wrapControl);
-        const control = new Control(wrapControl, this.onControlChange.bind(this));
+        this.wrapControl = Dom.from('div').addClasses('wrap-control');
+        this.canvasControl = Dom.from('canvas').pinTo(this.wrapControl);
+        this.control = new Control(this.wrapControl, this.onControlChange.bind(this));
         // Create legend
-        const wrapLegend = Dom.from('ul').addClasses('wrap-legend');
-        charts.forEach(chart => new Checkbox(wrapLegend, chart, this.onCheckboxClick.bind(this)));
+        this.wrapLegend = Dom.from('ul').addClasses('wrap-legend');
+        this.charts.forEach(chart => new Checkbox(this.wrapLegend, chart, this.onCheckboxClick.bind(this)));
         // Create tooltip
-        const tooltip = new Tooltip(wrap, charts);
+        this.tooltip = new Tooltip(this.wrap, this.charts);
 
-        wrap.append(title)
-            .append(wrapChart)
-            .append(wrapControl)
-            .append(wrapLegend);
+        this.wrap
+            .pinTo(parent)
+            .append(title)
+            .append(this.wrapChart)
+            .append(this.wrapControl)
+            .append(this.wrapLegend)
+    }
 
-        // Drawing
-        this.ctxChart = setupCanvas(canvasChart.element).ctx;
-        this.ctxControl = setupCanvas(canvasControl.element).ctx;
+    resetContext() {
+        this.ctxChart = setupCanvas(this.canvasView.element).ctx;
+        this.ctxControl = setupCanvas(this.canvasControl.element).ctx;
+    }
 
-        const allPoints = Chart.getAllChartsPoints(charts);
+    drawCharts() {
+        const allPoints = Chart.getAllChartsPoints(this.charts);
         const minY = Point.minY(allPoints);
         const maxY = Point.maxY(allPoints);
 
         this.ctxChart.setTransform(1, 0, 0, 1, 0, 0);
-        for (let i = 0; i < charts.length; i++) {
-            const chart = charts[i];
+        this.ctxControl.setTransform(1, 0, 0, 1, 0, 0);
 
+        for (let i = 0; i < this.charts.length; i++) {
+            const chart = this.charts[i];
             chart.draw(this.ctxChart, minY, maxY);
             chart.draw(this.ctxControl, minY, maxY);
         }
-
-        const {left, x: clientXOffset} = wrapChart.element.getBoundingClientRect();
-
-        const onMouseMove = e => {
-            tooltip.update(e.pageX - left, 1542412800000)
-        };
-
-        wrapChart.addEventListener('mousemove', onMouseMove, true);
     }
 
     onCheckboxClick(checked) {
@@ -59,23 +67,16 @@ export class TChart {
     }
 
     onControlChange(l, r) {
-        console.log(l, r);
 
-        const allPoints = Chart.getAllChartsPoints(this.charts);
-        const minY = Point.minY(allPoints);
-        const maxY = Point.maxY(allPoints);
+        const charts = this.charts;
 
-        this.ctxChart.setTransform(1, 0, 0, 1, 0, 0);
+        charts.forEach(chart => {
+            chart.points.filter(p => p.x)
+        });
+
         this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
-
-        this.ctxChart.translate((r - l) * this.ctxChart.canvas.width, 0);
-        this.ctxChart.scale(1 / (r - l), 1);
-        this.ctxChart.translate(-(r - l) * this.ctxChart.canvas.width, 0);
-
-        for (let i = 0; i < this.charts.length; i++) {
-            const chart = this.charts[i];
-            chart.draw(this.ctxChart, minY, maxY);
-        }
+        this.ctxControl.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
+        this.drawCharts();
 
         // animate({
         //     duration: 16,
@@ -94,4 +95,17 @@ export class TChart {
         //     }
         // });
     };
+
+    onMouseMove(e) {
+        const {left: wL, width: wW} = this.wrapChart.element.getBoundingClientRect();
+        const {width: tW} = this.tooltip.node.element.getBoundingClientRect();
+
+        let tLeft = (e.pageX - wL > wW - tW) ? e.pageX - wL - tW : e.pageX - wL;
+        this.tooltip.update(tLeft, 1542412800000);
+    };
+
+    onResize() {
+        this.resetContext();
+        this.drawCharts();
+    }
 }

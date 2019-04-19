@@ -7,13 +7,12 @@ import {Tooltip} from './tooltip';
 export class TChart {
     constructor(parent, charts) {
         this.charts = charts;
+        this.segment = this.getSegment(0.75, 1);
 
         this.createDom(parent);
-        this.resetContext();
+        this.addEventLiseners();
+        this.setContext();
         this.drawCharts();
-
-        this.wrapChart.addEventListener('mousemove', this.onMouseMove.bind(this), true);
-        window.addEventListener('resize', this.onResize.bind(this), false);
     }
 
     createDom(parent) {
@@ -42,37 +41,58 @@ export class TChart {
             .append(this.wrapLegend)
     }
 
-    resetContext() {
-        this.ctxChart = setupCanvas(this.canvasView.element).ctx;
-        this.ctxControl = setupCanvas(this.canvasControl.element).ctx;
+    addEventLiseners() {
+        this.wrapChart.addEventListener('mousemove', this.onWrapChartMouseMove.bind(this), false);
+        this.wrapChart.addEventListener('mouseover', this.onWrapChartMouseOver.bind(this), false);
+        this.wrapChart.addEventListener('mouseout', this.onWrapChartMouseOut.bind(this), false);
+        window.addEventListener('resize', this.onWindowResize.bind(this), false);
+    }
+
+    setContext() {
+        this.ctxChart = setupCanvas(this.canvasView.element);
+        this.ctxControl = setupCanvas(this.canvasControl.element);
+        this.ctxChart.setTransform(1, 0, 0, -1, 0, this.ctxChart.canvas.height);
+        this.ctxControl.setTransform(1, 0, 0, -1, 0, this.ctxControl.canvas.height);
     }
 
     drawCharts() {
-        const allPoints = Chart.getAllChartsPoints(this.charts);
+        const allPoints = Chart.getAllChartsPoints(this.segment);
         const minY = Point.minY(allPoints);
         const maxY = Point.maxY(allPoints);
 
-        this.ctxChart.setTransform(1, 0, 0, 1, 0, 0);
-        this.ctxControl.setTransform(1, 0, 0, 1, 0, 0);
+        for (let i = 0; i < this.segment.length; i++) {
+            const segment = this.segment[i];
+            segment.draw(this.ctxChart, minY, maxY);
+        }
+
+        const allSegmentPoints = Chart.getAllChartsPoints(this.charts);
+        const segmentMinY = Point.minY(allSegmentPoints);
+        const segmentMaxY = Point.maxY(allSegmentPoints);
 
         for (let i = 0; i < this.charts.length; i++) {
             const chart = this.charts[i];
-            chart.draw(this.ctxChart, minY, maxY);
-            chart.draw(this.ctxControl, minY, maxY);
+            chart.draw(this.ctxControl, segmentMinY, segmentMaxY);
         }
     }
 
-    onCheckboxClick(checked) {
-        console.log(checked);
+    getSegment(left, right) {
+        const segment = [];
+        this.charts.forEach(chart => {
+            const copy = Object.assign(new Chart(), chart);
+
+            const leftX = copy.points[0].x + (copy.points[copy.points.length - 1].x - copy.points[0].x) * left;
+            const rightX = copy.points[0].x + (copy.points[copy.points.length - 1].x - copy.points[0].x) * right;
+
+            copy.points = copy.points.filter(p => p.x >= leftX && p.x <= rightX);
+            segment.push(copy);
+        });
+        return segment;
     }
 
-    onControlChange(l, r) {
+    onCheckboxClick(checked) {}
 
-        const charts = this.charts;
-
-        charts.forEach(chart => {
-            chart.points.filter(p => p.x)
-        });
+    onControlChange(left, right) {
+        this.segment = this.getSegment(left, right);
 
         this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
         this.ctxControl.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
@@ -96,16 +116,39 @@ export class TChart {
         // });
     };
 
-    onMouseMove(e) {
-        const {left: wL, width: wW} = this.wrapChart.element.getBoundingClientRect();
-        const {width: tW} = this.tooltip.node.element.getBoundingClientRect();
+    onWrapChartMouseMove(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-        let tLeft = (e.pageX - wL > wW - tW) ? e.pageX - wL - tW : e.pageX - wL;
-        this.tooltip.update(tLeft, 1542412800000);
+        this.wrapChart.setStyle('cursor', 'crosshair');
+
+        const {left: wL, width: wW} = this.wrapChart.element.getBoundingClientRect();
+        const {width: tW} = this.tooltip.node().element.getBoundingClientRect();
+
+        let x = e.pageX - wL;
+
+        if (x >= wW - tW + 20) x = wW - tW + 20;
+        if (x <= 20) x = 20;
+
+        this.tooltip.update(x, 1542412800000);
     };
 
-    onResize() {
-        this.resetContext();
+    onWrapChartMouseOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.tooltip.node().setStyle('opacity', 1);
+    }
+
+    onWrapChartMouseOut(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.tooltip.node().setStyle('opacity', 0);
+    }
+
+    onWindowResize() {
+        this.setContext();
         this.drawCharts();
     }
 }

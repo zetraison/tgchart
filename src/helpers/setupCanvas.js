@@ -8,5 +8,5 @@ export function setupCanvas(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    return { ctx, viewport: { width, height } };
+    return ctx;
 }

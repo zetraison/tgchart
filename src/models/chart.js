@@ -56,9 +56,8 @@ export class Chart {
 
             const x1 = Math.round(relative(p1.x, minX, maxX) * ctx.canvas.width);
             const x2 = Math.round(relative(p2.x, minX, maxX) * ctx.canvas.width);
-
-            const y1 = ctx.canvas.height - Math.round(relative(p1.y, minY, maxY) * ctx.canvas.height);
-            const y2 = ctx.canvas.height - Math.round(relative(p2.y, minY, maxY) * ctx.canvas.height);
+            const y1 = Math.round(relative(p1.y, minY, maxY) * ctx.canvas.height);
+            const y2 = Math.round(relative(p2.y, minY, maxY) * ctx.canvas.height);
 
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
@@ -68,7 +67,7 @@ export class Chart {
 
         ctx.strokeStyle = this.color;
         ctx.lineCap = "round";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.stroke();
     }
 

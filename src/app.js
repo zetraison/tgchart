@@ -1,6 +1,6 @@
 import {TChart, ThemeButton} from './core';
-import {getCharts} from './data/getCharts';
-import {Dom, loadCss, loadJson, roundRange} from './helpers';
+import {getCharts} from './helpers/getCharts';
+import {Dom, loadCss, loadJson} from './helpers';
 
 
 window.addEventListener('load', () => {

@@ -4,9 +4,9 @@
   "description": "Telegram contest charts",
   "main": "tchart.js",
   "scripts": {
-    "dev": "webpack --mode development --watch",
+    "dev": "cp src/index.html dist/index.html && cp -r src/css/ dist/ && cp src/resources/favicon.ico dist/favicon.ico && cp -r src/resources dist && cp -r src/data/ dist && webpack --mode development --watch",
     "build": "webpack --mode production --progress --hide-modules",
-    "start": "webpack-dev-server --mode development --open",
+    "start": "webpack-dev-server --mode development --content-base dist/ --open",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -2,7 +2,7 @@ export * from './animate';
 export * from './array';
 export * from './dom';
 export * from './exception';
-export * from '../data/getCharts';
+export * from './getCharts';
 export * from './func';
 export * from './loadCss';
 export * from './loadJson';

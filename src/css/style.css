@@ -172,7 +172,7 @@ h2 {
 }
 
 .wrap-legend .on i {
-    background-image: url('../core/check.svg');
+    background-image: url('../resources/svg/check.svg');
 }
 
 .wrap-legend .off i {

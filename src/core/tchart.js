@@ -7,10 +7,15 @@ import {Tooltip} from './tooltip';
 export class TChart {
     constructor(parent, charts) {
         this.charts = charts;
-        this.segment = this.getSegment(0.75, 1);
+        this.segments = this.getSegment(0.75, 1);
+
+        this.minY = Point.minY(Chart.getAllChartsPoints(this.charts));
+        this.maxY = Point.maxY(Chart.getAllChartsPoints(this.charts));
+        this.segmentMinY = Point.minY(Chart.getAllChartsPoints(this.segments));
+        this.segmentMaxY = Point.maxY(Chart.getAllChartsPoints(this.segments));
 
         this.createDom(parent);
-        this.addEventLiseners();
+        this.addEventListeners();
         this.setContext();
         this.drawCharts();
     }
@@ -41,7 +46,7 @@ export class TChart {
             .append(this.wrapLegend)
     }
 
-    addEventLiseners() {
+    addEventListeners() {
         this.wrapChart.addEventListener('mousemove', this.onWrapChartMouseMove.bind(this), false);
         this.wrapChart.addEventListener('mouseover', this.onWrapChartMouseOver.bind(this), false);
         this.wrapChart.addEventListener('mouseout', this.onWrapChartMouseOut.bind(this), false);
@@ -56,22 +61,15 @@ export class TChart {
     }
 
     drawCharts() {
-        const allPoints = Chart.getAllChartsPoints(this.segment);
-        const minY = Point.minY(allPoints);
-        const maxY = Point.maxY(allPoints);
-
-        for (let i = 0; i < this.segment.length; i++) {
-            const segment = this.segment[i];
-            segment.draw(this.ctxChart, minY, maxY);
+        for (let i = 0; i < this.segments.length; i++) {
+            const segment = this.segments[i];
+            segment.draw(this.ctxChart, this.segmentMinY, this.segmentMaxY);
+            segment.drawCrosshair(this.ctxChart, this.segmentMinY, this.segmentMaxY);
         }
-
-        const allSegmentPoints = Chart.getAllChartsPoints(this.charts);
-        const segmentMinY = Point.minY(allSegmentPoints);
-        const segmentMaxY = Point.maxY(allSegmentPoints);
 
         for (let i = 0; i < this.charts.length; i++) {
             const chart = this.charts[i];
-            chart.draw(this.ctxControl, segmentMinY, segmentMaxY);
+            chart.draw(this.ctxControl, this.minY, this.maxY);
         }
     }
 
@@ -89,10 +87,14 @@ export class TChart {
         return segment;
     }
 
-    onCheckboxClick(checked) {}
+    onCheckboxClick(checked) {
+        this.drawCharts();
+    }
 
     onControlChange(left, right) {
-        this.segment = this.getSegment(left, right);
+        this.segments = this.getSegment(left, right);
+        this.segmentMinY = Point.minY(Chart.getAllChartsPoints(this.segments));
+        this.segmentMaxY = Point.maxY(Chart.getAllChartsPoints(this.segments));
 
         this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
         this.ctxControl.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
@@ -125,12 +127,23 @@ export class TChart {
         const {left: wL, width: wW} = this.wrapChart.element.getBoundingClientRect();
         const {width: tW} = this.tooltip.node().element.getBoundingClientRect();
 
-        let x = e.pageX - wL;
+        let left = Math.ceil(e.pageX - wL);
 
-        if (x >= wW - tW + 20) x = wW - tW + 20;
-        if (x <= 20) x = 20;
+        if (left >= wW - tW + 20) left = wW - tW + 20;
+        if (left <= 20) left = 20;
 
-        this.tooltip.update(x, 1542412800000);
+        const xAxis = this.segments[0].points;
+        const index = Math.ceil((e.pageX - wL) / wW * (xAxis.length - 1));
+        const index1 = Math.round((e.pageX - wL) / wW * (xAxis.length - 1) + 0.5);
+        const x = this.segments[0].points[index].x;
+
+        console.log(index, index1, index1 - index);
+
+        if (index !== this.prevIndex) {
+            this.tooltip.update(left, x);
+        }
+
+        this.prevIndex = Math.floor((e.pageX - wL) / wW * (xAxis.length - 1));
     };
 
     onWrapChartMouseOver(e) {

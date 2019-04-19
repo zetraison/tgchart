@@ -71,6 +71,42 @@ export class Chart {
         ctx.stroke();
     }
 
+    drawCrosshair(ctx, minY, maxY) {
+        const points = this.points;
+        const minX = this.minX();
+        const maxX = this.maxX();
+
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 0.1;
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const p = points[i];
+            const x = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width);
+
+            ctx.beginPath();
+
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, ctx.canvas.height);
+
+            ctx.stroke();
+        }
+
+        ctx.closePath();
+
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const p = points[i];
+            const x = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width);
+            const y = Math.round(relative(p.y, minY, maxY) * ctx.canvas.height);
+
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+    }
+
     static getAllChartsPoints(charts) {
         return charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
     }

@@ -8,7 +8,7 @@ export class Tooltip {
 
         this._node = Dom.from('div').addClasses('tooltip')
             .setStyle('left', 0, 'px')
-            //.setStyle('opacity', 0)
+            .setStyle('opacity', 0)
             .pinTo(parent);
 
         this.dateNode = Dom.from('div').addClasses('date')

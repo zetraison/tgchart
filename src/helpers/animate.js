@@ -7,7 +7,7 @@ export const animate = options =>  {
 
         let progress = options.timing(timeFraction);
 
-        options.draw(progress);
+        options.drawLine(progress);
 
         if (timeFraction < 1) {
             requestAnimationFrame(animate);

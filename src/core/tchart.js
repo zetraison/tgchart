@@ -1,167 +1,167 @@
-import {Dom, setupCanvas} from '../helpers';
-import {Point, Chart} from '../models';
+import {Dom, max, min, fraction, setupCanvas} from '../helpers';
+import {Chart} from '../models';
 import {Control} from './control';
 import {Checkbox} from './checkbox';
 import {Tooltip} from './tooltip';
 
 export class TChart {
     constructor(parent, charts) {
+        this.parent = parent;
+
         this.charts = charts;
+        this.minY = min(this.charts.filter(c => c.visible).map(c => c.minY()));
+        this.maxY = max(this.charts.filter(c => c.visible).map(c => c.maxY()));
+
         this.segments = this.getSegment(0.75, 1);
+        this.segmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
+        this.segmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
 
-        this.minY = Point.minY(Chart.getAllChartsPoints(this.charts));
-        this.maxY = Point.maxY(Chart.getAllChartsPoints(this.charts));
-        this.segmentMinY = Point.minY(Chart.getAllChartsPoints(this.segments));
-        this.segmentMaxY = Point.maxY(Chart.getAllChartsPoints(this.segments));
-
-        this.createDom(parent);
+        this.createDom();
         this.addEventListeners();
         this.setContext();
-        this.drawCharts();
+        this.drawSegment();
+        this.drawMinimap();
     }
 
-    createDom(parent) {
-        // Create main wrap
+    createDom() {
         this.wrap = Dom.from("div").addClasses("wrap");
-        // Create title
-        const title = Dom.from('h2').setText(`Chart ${0}`);
-        // Create chart
+
+        this.title = Dom.from('h2').setText(`Chart ${0}`);
+
         this.wrapChart = Dom.from('div').addClasses('wrap-chart');
-        this.canvasView = Dom.from('canvas').pinTo(this.wrapChart);
-        // Create mini map with controls
+        this.canvasSegment = Dom.from('canvas').pinTo(this.wrapChart);
+
         this.wrapControl = Dom.from('div').addClasses('wrap-control');
         this.canvasControl = Dom.from('canvas').pinTo(this.wrapControl);
         this.control = new Control(this.wrapControl, this.onControlChange.bind(this));
-        // Create legend
+
         this.wrapLegend = Dom.from('ul').addClasses('wrap-legend');
         this.charts.forEach(chart => new Checkbox(this.wrapLegend, chart, this.onCheckboxClick.bind(this)));
-        // Create tooltip
+
         this.tooltip = new Tooltip(this.wrap, this.charts);
 
-        this.wrap
-            .pinTo(parent)
-            .append(title)
+        this.wrap.pinTo(this.parent)
+            .append(this.title)
             .append(this.wrapChart)
             .append(this.wrapControl)
             .append(this.wrapLegend)
     }
 
     addEventListeners() {
-        this.wrapChart.addEventListener('mousemove', this.onWrapChartMouseMove.bind(this), false);
-        this.wrapChart.addEventListener('mouseover', this.onWrapChartMouseOver.bind(this), false);
-        this.wrapChart.addEventListener('mouseout', this.onWrapChartMouseOut.bind(this), false);
+        this.wrapChart.addEventListener('mousemove', this.onMouseMove.bind(this), false);
+        this.wrapChart.addEventListener('mouseover', this.onMouseOver.bind(this), false);
+        this.wrapChart.addEventListener('mouseout', this.ontMouseOut.bind(this), false);
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
     }
 
     setContext() {
-        this.ctxChart = setupCanvas(this.canvasView.element);
-        this.ctxControl = setupCanvas(this.canvasControl.element);
-        this.ctxChart.setTransform(1, 0, 0, -1, 0, this.ctxChart.canvas.height);
-        this.ctxControl.setTransform(1, 0, 0, -1, 0, this.ctxControl.canvas.height);
+        let {ctx, dpr} = setupCanvas(this.canvasSegment.element);
+        this.ctxChart = ctx;
+        this.dpr = dpr;
+        this.ctxChart.setTransform(dpr, 0, 0, -dpr, 0, this.ctxChart.canvas.height);
+
+        this.ctxControl = setupCanvas(this.canvasControl.element).ctx;
+        this.ctxControl.setTransform(dpr, 0, 0, -dpr, 0, this.ctxControl.canvas.height);
     }
 
-    drawCharts() {
-        for (let i = 0; i < this.segments.length; i++) {
-            const segment = this.segments[i];
-            segment.draw(this.ctxChart, this.segmentMinY, this.segmentMaxY);
-            segment.drawCrosshair(this.ctxChart, this.segmentMinY, this.segmentMaxY);
-        }
-
-        for (let i = 0; i < this.charts.length; i++) {
-            const chart = this.charts[i];
-            chart.draw(this.ctxControl, this.minY, this.maxY);
-        }
+    drawMinimap() {
+        this.ctxControl.clearRect(0, 0, this.ctxControl.canvas.width, this.ctxControl.canvas.height);
+        this.charts.forEach(chart =>
+            chart.visible ? chart.drawLine(this.ctxControl, this.minY, this.maxY, this.dpr) : null);
     }
 
-    getSegment(left, right) {
-        const segment = [];
-        this.charts.forEach(chart => {
-            const copy = Object.assign(new Chart(), chart);
+    drawSegment() {
+        this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
+        this.segments.forEach(segment =>
+            segment.visible ? segment.drawLine(this.ctxChart, this.segmentMinY, this.segmentMaxY, this.dpr) : null);
+    }
 
-            const leftX = copy.points[0].x + (copy.points[copy.points.length - 1].x - copy.points[0].x) * left;
-            const rightX = copy.points[0].x + (copy.points[copy.points.length - 1].x - copy.points[0].x) * right;
+    getSegment(leftPct, rightPct) {
 
-            copy.points = copy.points.filter(p => p.x >= leftX && p.x <= rightX);
-            segment.push(copy);
-        });
-        return segment;
+        const copy = chart => {
+            const copyChart = Object.assign(new Chart(), chart);
+
+            const leftX = fraction(copyChart.points.map(p => p.x), leftPct);
+            const rightX = fraction(copyChart.points.map(p => p.x), rightPct);
+
+            copyChart.points = copyChart.points.filter(p => p.x >= leftX && p.x <= rightX);
+
+            return copyChart;
+        };
+
+        return this.charts.map(chart => copy(chart));
     }
 
     onCheckboxClick(checked) {
-        this.drawCharts();
+        const chart = this.charts.filter(chart => chart.name === checked.name)[0];
+        chart.visible = checked.checked;
+        const segment = this.segments.filter(segment => segment.name === checked.name)[0];
+        segment.visible = checked.checked;
+
+        this.minY = min(this.charts.filter(c => c.visible).map(c => c.minY()));
+        this.maxY = max(this.charts.filter(c => c.visible).map(c => c.maxY()));
+        this.segmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
+        this.segmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
+
+        this.drawSegment();
+        this.drawMinimap();
     }
 
     onControlChange(left, right) {
         this.segments = this.getSegment(left, right);
-        this.segmentMinY = Point.minY(Chart.getAllChartsPoints(this.segments));
-        this.segmentMaxY = Point.maxY(Chart.getAllChartsPoints(this.segments));
+        this.segmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
+        this.segmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
 
-        this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
-        this.ctxControl.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
-        this.drawCharts();
-
-        // animate({
-        //     duration: 16,
-        //     timing: function(timeFraction) {
-        //         return timeFraction;
-        //     },
-        //     draw: function(progress) {
-        //         ctxChart.clearRect(0, 0, ctxChart.canvas.width, ctxChart.canvas.height);
-        //
-        //         ctxChart.setTransform(1 / (r - l), 0, 0, 1, -l * ctxChart.canvas.width, 0);
-        //
-        //         for (let i = 0; i < series.length; i++) {
-        //             const chart = series[i];
-        //             chart.draw(ctxChart, minY, maxY);
-        //         }
-        //     }
-        // });
+        this.drawSegment();
+        this.drawMinimap();
     };
 
-    onWrapChartMouseMove(e) {
+    onMouseMove(e) {
         e.preventDefault();
         e.stopPropagation();
 
         this.wrapChart.setStyle('cursor', 'crosshair');
 
+        this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
+        this.drawSegment();
+
         const {left: wL, width: wW} = this.wrapChart.element.getBoundingClientRect();
         const {width: tW} = this.tooltip.node().element.getBoundingClientRect();
 
-        let left = Math.ceil(e.pageX - wL);
+        const xAxis = this.segments[0].points.map(p => p.x);
 
-        if (left >= wW - tW + 20) left = wW - tW + 20;
-        if (left <= 20) left = 20;
-
-        const xAxis = this.segments[0].points;
         const index = Math.ceil((e.pageX - wL) / wW * (xAxis.length - 1));
-        const index1 = Math.round((e.pageX - wL) / wW * (xAxis.length - 1) + 0.5);
         const x = this.segments[0].points[index].x;
 
-        console.log(index, index1, index1 - index);
+        const step = (x - xAxis[0]) / (xAxis[xAxis.length - 1] - xAxis[0]) * wW;
 
-        if (index !== this.prevIndex) {
-            this.tooltip.update(left, x);
+        for (let i = 0; i < this.segments.length; i++) {
+            const segment = this.segments[i];
+            segment.drawCrosshair(this.ctxChart, x, this.segmentMinY, this.segmentMaxY, this.dpr);
         }
 
-        this.prevIndex = Math.floor((e.pageX - wL) / wW * (xAxis.length - 1));
+        this.tooltip.update(step, x);
     };
 
-    onWrapChartMouseOver(e) {
+    onMouseOver(e) {
         e.preventDefault();
         e.stopPropagation();
 
         this.tooltip.node().setStyle('opacity', 1);
     }
 
-    onWrapChartMouseOut(e) {
+    ontMouseOut(e) {
         e.preventDefault();
         e.stopPropagation();
 
         this.tooltip.node().setStyle('opacity', 0);
+
+        this.drawSegment();
     }
 
     onWindowResize() {
         this.setContext();
-        this.drawCharts();
+        this.drawMinimap();
+        this.drawSegment();
     }
 }

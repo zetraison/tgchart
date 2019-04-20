@@ -30,18 +30,7 @@ export class Chart {
         return points.length > 0 ? points[0].y : NaN;
     }
 
-    cropPoints(l, r) {
-        const points = this.points;
-        const minX = this.minX();
-        const maxX = this.maxX();
-
-        l = Math.round(minX + (maxX - minX) * l);
-        r = Math.round(minX + (maxX - minX) * r);
-
-        return points.filter(p => p.x >= l && p.x <= r);
-    }
-
-    draw(ctx, minY, maxY) {
+    drawLine(ctx, minY, maxY, dpr) {
 
         const points = this.points;
         const minX = this.minX();
@@ -54,10 +43,10 @@ export class Chart {
             const p1 = points[i];
             const p2 = points[i+1];
 
-            const x1 = Math.round(relative(p1.x, minX, maxX) * ctx.canvas.width);
-            const x2 = Math.round(relative(p2.x, minX, maxX) * ctx.canvas.width);
-            const y1 = Math.round(relative(p1.y, minY, maxY) * ctx.canvas.height);
-            const y2 = Math.round(relative(p2.y, minY, maxY) * ctx.canvas.height);
+            const x1 = Math.round(relative(p1.x, minX, maxX) * ctx.canvas.width / dpr);
+            const x2 = Math.round(relative(p2.x, minX, maxX) * ctx.canvas.width / dpr);
+            const y1 = Math.round(relative(p1.y, minY, maxY) * ctx.canvas.height / dpr);
+            const y2 = Math.round(relative(p2.y, minY, maxY) * ctx.canvas.height / dpr);
 
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
@@ -71,43 +60,35 @@ export class Chart {
         ctx.stroke();
     }
 
-    drawCrosshair(ctx, minY, maxY) {
-        const points = this.points;
+    drawCrosshair(ctx, x, minY, maxY, dpr) {
         const minX = this.minX();
         const maxX = this.maxX();
 
+        const p = this.points.filter(p => p.x === x)[0];
+
+        let lineX = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width / dpr);
+
+        ctx.beginPath();
+        ctx.moveTo(lineX, 0);
+        ctx.lineTo(lineX, ctx.canvas.height);
+        ctx.closePath();
+
         ctx.strokeStyle = '#aaa';
         ctx.lineWidth = 0.1;
+        ctx.stroke();
 
-        for (let i = 0; i < points.length - 1; i++) {
-            const p = points[i];
-            const x = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width);
+        const arcX = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width / dpr);
+        const arcY = Math.round(relative(p.y, minY, maxY) * ctx.canvas.height / dpr);
 
-            ctx.beginPath();
-
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, ctx.canvas.height);
-
-            ctx.stroke();
-        }
-
+        ctx.beginPath();
+        ctx.arc(arcX, arcY, 6, 0, 2 * Math.PI);
         ctx.closePath();
+
+        ctx.fillStyle = '#242f3e';
+        ctx.fill();
 
         ctx.strokeStyle = this.color;
         ctx.lineWidth = 2;
-
-        for (let i = 0; i < points.length - 1; i++) {
-            const p = points[i];
-            const x = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width);
-            const y = Math.round(relative(p.y, minY, maxY) * ctx.canvas.height);
-
-            ctx.beginPath();
-            ctx.arc(x, y, 6, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
-    }
-
-    static getAllChartsPoints(charts) {
-        return charts.map(c => c.points).reduce((a, b) => a.concat(b), []);
+        ctx.stroke();
     }
 }

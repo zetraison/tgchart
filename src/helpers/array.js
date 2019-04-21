@@ -6,4 +6,4 @@ const first = array => array[0];
 const last = array => array[array.length - 1];
 const fraction = (array, percentage) => first(array) + (last(array) - first(array)) * percentage;
 
-export { min, max, tail, head, fraction }
+export { first, last, min, max, tail, head, fraction }

@@ -1,10 +1,10 @@
-import {Dom, timestampToDate} from "../helpers";
+import {Dom, head, timestampToDate} from "../helpers";
 
 export class Tooltip {
     constructor(parent, charts) {
         this.charts = charts;
 
-        const x = charts[0].points.map(p => p.x)[0];
+        const x = head(charts[0].points.map(p => p.x));
 
         this._node = Dom.from('div').addClasses('tooltip')
             .setStyle('left', 0, 'px')
@@ -41,9 +41,12 @@ export class Tooltip {
         this.charts.forEach((chart, index) => {
             const span = this.values[index];
 
-            span.empty()
-                .append(Dom.from('b').setText(chart.getY(x)))
-                .setText(chart.name);
+            span.empty();
+
+            if (chart.visible) {
+                span.append(Dom.from('b').setText(chart.getY(x)))
+                    .setText(chart.name);
+            }
         });
 
         this._node.setStyle('left', left, 'px');

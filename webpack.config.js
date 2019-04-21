@@ -19,8 +19,7 @@ module.exports = {
             { from: 'src/index.html', to: './' },
             { from: 'src/css', to: './css' },
             { from: 'src/data', to: './data' },
-            { from: 'src/resources/svg', to: './resources/svg'},
-            { from: 'src/resources/favicon.ico', to: './' }
+            { from: 'src/resources', to: './resources'}
         ])
     ],
 

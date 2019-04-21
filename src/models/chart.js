@@ -1,5 +1,5 @@
 import {Point} from "./point";
-import {relative} from "../helpers";
+import {first, relative} from "../helpers";
 
 export class Chart {
     constructor(points, color, name, visible) {
@@ -30,7 +30,7 @@ export class Chart {
         return points.length > 0 ? points[0].y : NaN;
     }
 
-    drawLine(ctx, minY, maxY, dpr) {
+    drawLine(ctx, minY, maxY, dpr, opacity) {
 
         const points = this.points;
         const minX = this.minX();
@@ -54,7 +54,9 @@ export class Chart {
 
         ctx.closePath();
 
+        //ctx.globalCompositeOperation = 'destination-atop';
         ctx.strokeStyle = this.color;
+        ctx.globalAlpha = opacity;
         ctx.lineCap = "round";
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -64,7 +66,7 @@ export class Chart {
         const minX = this.minX();
         const maxX = this.maxX();
 
-        const p = this.points.filter(p => p.x === x)[0];
+        const p = first(this.points.filter(p => p.x === x));
 
         let lineX = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width / dpr);
 
@@ -81,7 +83,7 @@ export class Chart {
         const arcY = Math.round(relative(p.y, minY, maxY) * ctx.canvas.height / dpr);
 
         ctx.beginPath();
-        ctx.arc(arcX, arcY, 6, 0, 2 * Math.PI);
+        ctx.arc(arcX, arcY, 5, 0, 2 * Math.PI);
         ctx.closePath();
 
         ctx.fillStyle = '#242f3e';

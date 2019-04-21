@@ -90,10 +90,13 @@ export class TChart {
         const max = this.prevMaxY + (this.maxY - this.prevMaxY) * progress;
 
         this.ctxControl.clearRect(0, 0, this.ctxControl.canvas.width, this.ctxControl.canvas.height);
-        this.charts.forEach(chart => {
-            const opacity = chart.visible ? 1 : 1 - progress;
-            chart.drawLine(this.ctxControl, min, max, this.dpr, opacity)
-        });
+        this.charts.forEach(chart =>
+            chart.drawLine(this.ctxControl, min, max, this.dpr, (chart.visible ? 1 : 1 - progress)));
+
+        if (progress === 1) {
+            this.prevMinY = this.minY;
+            this.prevMaxY = this.maxY;
+        }
     }
 
     drawSegment(progress) {
@@ -103,10 +106,8 @@ export class TChart {
         const max = this.prevSegmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
 
         this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
-        this.segments.forEach(segment => {
-            const opacity = segment.visible ? 1 : 1 - progress;
-            segment.drawLine(this.ctxChart, min, max, this.dpr, opacity);
-        });
+        this.segments.forEach(segment =>
+            segment.drawLine(this.ctxChart, min, max, this.dpr, (segment.visible ? 1 : 1 - progress)));
 
         if (progress === 1) {
             this.prevSegmentMinY = this.segmentMinY;
@@ -124,7 +125,7 @@ export class TChart {
             if (segment.visible)
                 segment.drawCrosshair(this.ctxChart,  this.x, min, max, this.dpr);
         });
-        
+
         if (progress === 1) {
             this.prevSegmentMinY = this.segmentMinY;
             this.prevSegmentMaxY = this.segmentMaxY;
@@ -155,9 +156,9 @@ export class TChart {
     }
 
     onCheckboxClick(checked) {
-        const chart = this.charts.filter(chart => chart.name === checked.name)[0];
+        const chart = first(this.charts.filter(chart => chart.name === checked.name));
         chart.visible = checked.checked;
-        const segment = this.segments.filter(segment => segment.name === checked.name)[0];
+        const segment = first(this.segments.filter(segment => segment.name === checked.name));
         segment.visible = checked.checked;
 
         this.minY = min(this.charts.filter(c => c.visible).map(c => c.minY()));

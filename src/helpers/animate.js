@@ -12,6 +12,5 @@ export const animate = options =>  {
         if (timeFraction < 1) {
             requestAnimationFrame(animate);
         }
-
     });
 };

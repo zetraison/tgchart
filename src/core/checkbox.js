@@ -3,31 +3,50 @@ import {Dom} from "../helpers";
 export class Checkbox {
     constructor(parent, chart, onClicked) {
 
-        const check = Dom.from('i')
+        this.parent = parent;
+
+        this.check = Dom.from('i')
             .setStyle('background-color', chart.color)
             .setStyle('border-color', chart.color);
 
-        const box = Dom.from('li').addClasses('on')
-            .append(check)
+        this.box = Dom.from('li').addClasses('on')
+            .append(this.check)
             .setText(chart.name)
             .pinTo(parent);
 
-        box.addEventListener('click', this.onClick.bind(this, chart, onClicked), true);
+        this.box.addEventListener('click', this.onClick.bind(this, chart, onClicked), true);
+        this.box.addEventListener('animationend', this.animationListener.bind(this), false);
+
+        return this;
     }
 
-    onClick(chart, onClicked, e) {
-        let target = e.target;
-        if (target.tagName !== 'LI') {
-            while (target.tagName !== 'LI')
-                target = target.parentElement;
+    isChecked() {
+        return this.box.hasClass('on');
+    }
+
+    isLastCheckedBox() {
+        let count = 0;
+        this.box.element.parentNode.childNodes.forEach(c => {
+            const classList = c.className.split(' ');
+            if (classList.indexOf('on') > -1) count++;
+        });
+        return count === 1;
+    }
+
+    animationListener(e) {
+        if (e.type.toLowerCase().indexOf("animationend") >= 0) {
+            this.box.removeClasses('animation-shake');
         }
-        const box = Dom.of(target);
+    }
 
-        const checked = box.hasClass('on');
-        checked
-            ? box.removeClasses('on').addClasses('off')
-            : box.removeClasses('off').addClasses('on');
+    onClick(chart, onClicked) {
+        if (this.isLastCheckedBox() && this.isChecked())
+            return this.box.addClasses('animation-shake');
 
-        onClicked({ name: chart.name, checked: !checked});
+        this.isChecked()
+            ? this.box.removeClasses('on').addClasses('off')
+            : this.box.removeClasses('off').addClasses('on');
+
+        onClicked({ name: chart.name, checked: this.isChecked()});
     };
 }

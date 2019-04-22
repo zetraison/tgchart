@@ -1,4 +1,4 @@
-import {Dom, animate, max, min, first, last, fraction, relative, setupCanvas} from '../helpers';
+import {Dom, animate, max, min, first, last, linear, fraction, relative, setupCanvas} from '../helpers';
 import {Chart} from '../models';
 import {Control} from './control';
 import {Checkbox} from './checkbox';
@@ -40,7 +40,7 @@ export class TChart {
         this.control = new Control(this.wrapControl, this.onControlChange.bind(this));
 
         this.wrapLegend = Dom.from('ul').addClasses('wrap-legend');
-        this.charts.forEach(chart => new Checkbox(this.wrapLegend, chart, this.onCheckboxClick.bind(this)));
+        this.charts.map(chart => new Checkbox(this.wrapLegend, chart, this.onCheckboxClick.bind(this)));
 
         this.tooltip = new Tooltip(this.wrap, this.charts);
 
@@ -137,9 +137,7 @@ export class TChart {
 
         animate({
             duration: 200,
-            timing: function(timeFraction) {
-                return timeFraction;
-            },
+            timing: linear,
             draw: function(progress) {
                 progress = anim ? progress : 1;
 

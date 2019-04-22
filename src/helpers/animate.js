@@ -1,4 +1,4 @@
-export const animate = options =>  {
+const animate = options =>  {
     let start = performance.now();
 
     requestAnimationFrame(function animate(time) {
@@ -14,3 +14,7 @@ export const animate = options =>  {
         }
     });
 };
+
+const linear = time => time;
+
+export { animate, linear }

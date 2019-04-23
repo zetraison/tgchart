@@ -1,4 +1,4 @@
-import {Dom, animate, max, min, first, last, linear, fraction, relative, setupCanvas} from '../helpers';
+import {Dom, animate, max, min, first, last, linear, fraction, relative, setupCanvas, roundRange} from '../helpers';
 import {Chart} from '../models';
 import {Control} from './control';
 import {Checkbox} from './checkbox';
@@ -8,6 +8,8 @@ export class TChart {
     constructor(parent, charts) {
         this.parent = parent;
 
+        this.gridCount = 6;
+
         this.charts = charts;
         this.minY = this.prevMinY = min(this.charts.filter(c => c.visible).map(c => c.minY()));
         this.maxY = this.prevMaxY = max(this.charts.filter(c => c.visible).map(c => c.maxY()));
@@ -16,15 +18,23 @@ export class TChart {
         this.segmentMinY = this.prevSegmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
         this.segmentMaxY = this.prevSegmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
 
-        this.updateSegment = false;
-        this.updateMinimap = false;
-        this.updateCrosshair = false;
+        this.roundRange = roundRange(this.segmentMinY, this.segmentMaxY , this.gridCount);
+
+        const options = {
+            segment: { update: true, animate: true, alphaOff: false },
+            minimap: { update: true, animate: true },
+            crosshair: { update: false, animate: true },
+            grid: { update: true, animate: true },
+            yAxis: { update: true, animate: true }
+        };
 
         this.createDom();
         this.addEventListeners();
         this.setContext();
-        this.drawSegment();
-        this.drawMinimap();
+        this.drawSegment(1, options.segment);
+        this.drawGrid(1, options.grid);
+        this.drawYAxisTickMarks(1, options.yAxis);
+        this.drawMinimap(1, options.minimap);
     }
 
     createDom() {
@@ -37,10 +47,10 @@ export class TChart {
 
         this.wrapControl = Dom.from('div').addClasses('wrap-control');
         this.canvasControl = Dom.from('canvas').pinTo(this.wrapControl);
-        this.control = new Control(this.wrapControl, this.onControlChange.bind(this));
+        this.control = new Control(this.wrapControl);
 
         this.wrapLegend = Dom.from('ul').addClasses('wrap-legend');
-        this.charts.map(chart => new Checkbox(this.wrapLegend, chart, this.onCheckboxClick.bind(this)));
+        this.checkboxes = this.charts.map(chart => new Checkbox(this.wrapLegend, chart));
 
         this.tooltip = new Tooltip(this.wrap, this.charts);
 
@@ -52,6 +62,8 @@ export class TChart {
     }
 
     addEventListeners() {
+        this.control.addEventListener(this.onControlChange.bind(this));
+        this.checkboxes.forEach(checkbox => checkbox.addEventListener(this.onCheckboxClick.bind(this)));
         this.wrapChart.addEventListener('mousemove', this.onMouseMove.bind(this), false);
         this.wrapChart.addEventListener('mouseover', this.onMouseOver.bind(this), false);
         this.wrapChart.addEventListener('mouseout', this.ontMouseOut.bind(this), false);
@@ -91,11 +103,15 @@ export class TChart {
         this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
     }
 
-    drawMinimap(progress) {
-        if (progress === undefined) progress = 1;
+    drawMinimap(progress, options) {
+        if (progress === undefined || !options.animate) {
+            progress = 1;
+        }
 
         const min = this.prevMinY + (this.minY - this.prevMinY) * progress;
         const max = this.prevMaxY + (this.maxY - this.prevMaxY) * progress;
+
+        this.ctxControl.lineWidth = 1;
 
         this.charts.forEach(chart =>
             chart.drawLine(this.ctxControl, min, max, this.dpr, (chart.visible ? 1 : 1 - progress)));
@@ -106,30 +122,19 @@ export class TChart {
         }
     }
 
-    drawSegment(progress) {
-        if (progress === undefined) progress = 1;
+    drawSegment(progress, options) {
+        if (progress === undefined || !options.animate) {
+            progress = 1;
+        }
 
         const min = this.prevSegmentMinY + (this.segmentMinY - this.prevSegmentMinY) * progress;
         const max = this.prevSegmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
 
-        this.segments.forEach(segment =>
-            segment.drawLine(this.ctxChart, min, max, this.dpr, (segment.visible ? 1 : 1 - progress)));
-
-        if (progress === 1) {
-            this.prevSegmentMinY = this.segmentMinY;
-            this.prevSegmentMaxY = this.segmentMaxY;
-        }
-    }
-
-    drawCrosshair(progress) {
-        if (progress === undefined) progress = 1;
-
-        const min = this.segmentMinY + (this.segmentMinY - this.prevSegmentMinY) * progress;
-        const max = this.segmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
+        this.ctxChart.lineWidth = 2;
 
         this.segments.forEach(segment => {
-            if (segment.visible)
-                segment.drawCrosshair(this.ctxChart,  this.x, min, max, this.dpr);
+            const alpha = options.alphaOff && !segment.visible ? 0 : segment.visible ? 1 : 1 - progress;
+            segment.drawLine(this.ctxChart, min, max, this.dpr, alpha);
         });
 
         if (progress === 1) {
@@ -138,23 +143,100 @@ export class TChart {
         }
     }
 
-    update(anim) {
-        const draw = progress => {
-            progress = anim ? progress : 1;
+    drawCrosshair(progress, options) {
+        if (progress === undefined || !options.animate) {
+            progress = 1;
+        }
 
-            if (this.updateMinimap) {
+        const min = this.segmentMinY + (this.segmentMinY - this.prevSegmentMinY) * progress;
+        const max = this.segmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
+
+        this.segments.forEach(segment => {
+            if (segment.visible)
+                segment.drawCrosshair(this.ctxChart, this.x, min, max, this.dpr);
+        });
+
+        if (progress === 1) {
+            this.prevSegmentMinY = this.segmentMinY;
+            this.prevSegmentMaxY = this.segmentMaxY;
+        }
+    }
+
+    drawGrid(progress, options) {
+        if (progress === undefined || !options.animate) {
+            progress = 1;
+        }
+
+        const ctx = this.ctxChart;
+        const width = ctx.canvas.width / this.dpr;
+        const height = ctx.canvas.height / this.dpr;
+        const step = Math.round(height / this.gridCount);
+
+        ctx.strokeStyle = "#aaa";
+        ctx.lineWidth = 0.2;
+
+        ctx.beginPath();
+
+        for (let i = 0; i < this.gridCount; i++) {
+            ctx.moveTo(0, step * (i + progress));
+            ctx.lineTo(width, step * (i + progress));
+        }
+
+        ctx.closePath();
+
+        ctx.stroke();
+    }
+
+    drawYAxisTickMarks(progress, options) {
+        if (progress === undefined || !options.animate) {
+            progress = 1;
+        }
+
+        const ctx = this.ctxChart;
+
+        const draw = () => {
+            const height = ctx.canvas.height / this.dpr;
+            const step = Math.round(height / this.gridCount);
+            const roundRange = this.roundRange;
+
+            ctx.font = "11px bold HelveticaNeue-Light,Helvetica,sans-serif";
+            ctx.fillStyle = "#aaa";
+
+            const stepValue = Math.round((roundRange.yMax - roundRange.yMin) / this.gridCount);
+
+            for (let i = 0; i < this.gridCount; i++) {
+                ctx.fillText(i * stepValue + "", 0, height - (i - 1 + progress) * step - 6);
+            }
+        };
+
+        ctx.save();
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        draw();
+        ctx.restore();
+    }
+
+    update(options) {
+
+        const draw = progress => {
+            if (options.minimap.update) {
                 this.clearMinimap();
-                this.drawMinimap(progress);
+                this.drawMinimap(progress, options.minimap);
             }
 
-            if (this.updateSegment || this.updateCrosshair)
+            if (options.segment.update || options.crosshair.update || options.grid.update || options.yAxis.update)
                 this.clearSegment();
 
-            if (this.updateSegment)
-                this.drawSegment(progress);
+            if (options.segment.update)
+                this.drawSegment(progress, options.segment);
 
-            if (this.updateCrosshair)
-                this.drawCrosshair(progress);
+            if (options.crosshair.update)
+                this.drawCrosshair(progress, options.crosshair);
+
+            if (options.grid.update)
+                this.drawGrid(progress, options.grid);
+
+            if (options.yAxis.update)
+                this.drawYAxisTickMarks(progress, options.yAxis);
         };
 
         animate({duration: 200, timing: linear, draw: draw});
@@ -170,27 +252,35 @@ export class TChart {
         this.maxY = max(this.charts.filter(c => c.visible).map(c => c.maxY()));
         this.segmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
         this.segmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
+        this.roundRange = roundRange(this.segmentMinY, this.segmentMaxY , this.gridCount);
 
-        this.updateSegment = true;
-        this.updateMinimap = true;
-        this.updateCrosshair = false;
-        this.update(true);
+        const options = {
+            segment: { update: true, animate: true },
+            minimap: { update: true, animate: true },
+            crosshair: { update: false, animate: true },
+            grid: { update: true, animate: true },
+            yAxis: { update: true, animate: true }
+        };
+        this.update(options);
     }
 
     onControlChange(left, right) {
         this.segments = this.getSegment(left, right);
         this.segmentMinY = min(this.segments.filter(s => s.visible).map(s => s.minY()));
         this.segmentMaxY = max(this.segments.filter(s => s.visible).map(s => s.maxY()));
+        this.roundRange = roundRange(this.segmentMinY, this.segmentMaxY , this.gridCount);
 
-        this.updateSegment = true;
-        this.updateMinimap = false;
-        this.updateCrosshair = false;
-        this.update(true);
+        const options = {
+            segment: { update: true, animate: true, alphaOff: true },
+            minimap: { update: false, animate: true },
+            crosshair: { update: false, animate: true },
+            grid: { update: true, animate: true },
+            yAxis: { update: true, animate: true }
+        };
+        this.update(options);
     };
 
     onMouseMove(e) {
-        e.preventDefault();
-        e.stopPropagation();
 
         const {left: wrapLeft, width: wrapWidth} = this.wrapChart.element.getBoundingClientRect();
         const {width: tooltipWidth} = this.tooltip.node().element.getBoundingClientRect();
@@ -206,10 +296,14 @@ export class TChart {
         if (left + tooltipWidth - 40 > wrapWidth)
             left = wrapWidth - tooltipWidth + 40;
 
-        this.updateSegment = true;
-        this.updateMinimap = false;
-        this.updateCrosshair = true;
-        this.update(false);
+        const options = {
+            segment: { update: true, animate: true, alphaOff: true },
+            minimap: { update: false, animate: false },
+            crosshair: { update: true, animate: true },
+            grid: { update: true, animate: false },
+            yAxis: { update: true, animate: false }
+        };
+        this.update(options);
 
         this.tooltip.update(left, this.x);
         this.wrapChart.setStyle('cursor', 'crosshair');
@@ -226,20 +320,22 @@ export class TChart {
         e.preventDefault();
         e.stopPropagation();
 
-        this.updateSegment = true;
-        this.updateMinimap = false;
-        this.updateCrosshair = false;
-        this.update();
+        const options = {
+            segment: { update: true, animate: true, alphaOff: true },
+            minimap: { update: false, animate: true },
+            crosshair: { update: false, animate: true },
+            grid: { update: true, animate: false },
+            yAxis: { update: true, animate: false }
+        };
+        this.update(options);
 
         this.tooltip.node().setStyle('opacity', 0);
     }
 
     onWindowResize() {
         this.setContext();
-
         this.clearMinimap();
         this.drawMinimap();
-
         this.clearSegment();
         this.drawSegment();
     }

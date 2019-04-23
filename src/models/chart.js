@@ -31,10 +31,18 @@ export class Chart {
     }
 
     drawLine(ctx, minY, maxY, dpr, opacity) {
-
         const points = this.points;
         const minX = this.minX();
         const maxX = this.maxX();
+
+        const width = ctx.canvas.width / dpr;
+        const height = ctx.canvas.height / dpr;
+
+        ctx.save();
+
+        ctx.globalAlpha = opacity;
+        ctx.strokeStyle = this.color;
+        ctx.lineCap = "round";
 
         ctx.beginPath();
 
@@ -43,10 +51,10 @@ export class Chart {
             const p1 = points[i];
             const p2 = points[i+1];
 
-            const x1 = Math.round(relative(p1.x, minX, maxX) * ctx.canvas.width / dpr);
-            const x2 = Math.round(relative(p2.x, minX, maxX) * ctx.canvas.width / dpr);
-            const y1 = Math.round(relative(p1.y, minY, maxY) * ctx.canvas.height / dpr);
-            const y2 = Math.round(relative(p2.y, minY, maxY) * ctx.canvas.height / dpr);
+            const x1 = Math.round(relative(p1.x, minX, maxX) * width);
+            const x2 = Math.round(relative(p2.x, minX, maxX) * width);
+            const y1 = Math.round(relative(p1.y, minY, maxY) * height);
+            const y2 = Math.round(relative(p2.y, minY, maxY) * height);
 
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
@@ -54,33 +62,33 @@ export class Chart {
 
         ctx.closePath();
 
-        //ctx.globalCompositeOperation = 'destination-atop';
-        ctx.strokeStyle = this.color;
-        ctx.globalAlpha = opacity;
-        ctx.lineCap = "round";
-        ctx.lineWidth = 2;
         ctx.stroke();
+
+        ctx.restore();
     }
 
     drawCrosshair(ctx, x, minY, maxY, dpr) {
         const minX = this.minX();
         const maxX = this.maxX();
 
+        const width = ctx.canvas.width / dpr;
+        const height = ctx.canvas.height / dpr;
+
         const p = first(this.points.filter(p => p.x === x));
 
-        let lineX = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width / dpr);
+        let lineX = Math.round(relative(p.x, minX, maxX) * width);
 
         ctx.beginPath();
         ctx.moveTo(lineX, 0);
-        ctx.lineTo(lineX, ctx.canvas.height);
+        ctx.lineTo(lineX, height);
         ctx.closePath();
 
         ctx.strokeStyle = '#aaa';
         ctx.lineWidth = 0.1;
         ctx.stroke();
 
-        const arcX = Math.round(relative(p.x, minX, maxX) * ctx.canvas.width / dpr);
-        const arcY = Math.round(relative(p.y, minY, maxY) * ctx.canvas.height / dpr);
+        const arcX = Math.round(relative(p.x, minX, maxX) * width);
+        const arcY = Math.round(relative(p.y, minY, maxY) * height);
 
         ctx.beginPath();
         ctx.arc(arcX, arcY, 5, 0, 2 * Math.PI);

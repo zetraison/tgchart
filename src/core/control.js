@@ -1,7 +1,7 @@
 import {Dom, limit, touchHandler} from "../helpers";
 
 export class Control {
-    constructor(parent, callback) {
+    constructor(parent) {
 
         this.WINDOW_MIN_WIDTH = 25;
         this.WINDOW_BORDER_TOUCH_WIDTH = 10;
@@ -9,11 +9,7 @@ export class Control {
         this.node = Dom.from("div").addClasses("control");
         this.overlayL = Dom.from("div").addClasses("overlay l");
         this.overlayR = Dom.from("div").addClasses("overlay r");
-        this.window = Dom.from("div").addClasses("window")
-            .addEventListener("touchstart", touchHandler, true)
-            .addEventListener("touchmove", touchHandler, true)
-            .addEventListener("touchend", touchHandler, true)
-            .addEventListener("mousedown", this.onMouseDown.bind(this, callback), true);
+        this.window = Dom.from("div").addClasses("window");
 
         this.node
             .append(this.overlayL)
@@ -24,71 +20,80 @@ export class Control {
         return this;
     }
 
-    onMouseDown (callback, event) {
-        event.preventDefault();
+    addEventListener(callback) {
 
-        const controlRect = this.node.element.getBoundingClientRect();
-        const windowRect = this.window.element.getBoundingClientRect();
-        const overlayLRect = this.overlayL.element.getBoundingClientRect();
-        const overlayRRect = this.overlayR.element.getBoundingClientRect();
+        const onMouseDown = event => {
+            event.preventDefault();
 
-        const shiftX = Math.round(event.pageX - windowRect.left);
+            const controlRect = this.node.element.getBoundingClientRect();
+            const windowRect = this.window.element.getBoundingClientRect();
+            const overlayLRect = this.overlayL.element.getBoundingClientRect();
+            const overlayRRect = this.overlayR.element.getBoundingClientRect();
 
-        const onMouseMove = e => {
-            e.preventDefault();
+            const shiftX = Math.round(event.pageX - windowRect.left);
 
-            let min, max, cursor, left = 75, right = 100;
-            let value = Math.round(e.pageX - shiftX - controlRect.left);
+            const onMouseMove = e => {
+                e.preventDefault();
 
-            if (shiftX > 0 && shiftX < this.WINDOW_BORDER_TOUCH_WIDTH) {
+                let min, max, cursor, left = 75, right = 100;
+                let value = Math.round(e.pageX - shiftX - controlRect.left);
 
-                min = 0;
-                max = controlRect.width - overlayRRect.width - this.WINDOW_MIN_WIDTH;
+                if (shiftX > 0 && shiftX < this.WINDOW_BORDER_TOUCH_WIDTH) {
 
-                cursor = limit(value, min, max);
+                    min = 0;
+                    max = controlRect.width - overlayRRect.width - this.WINDOW_MIN_WIDTH;
 
-                this.overlayL.setStyle("width", cursor, "px");
-                this.window.setStyle("width", controlRect.width - overlayRRect.width - cursor, "px");
+                    cursor = limit(value, min, max);
 
-                left = Math.round(cursor / controlRect.width * 100) / 100;
-                right = Math.round((controlRect.width - overlayRRect.width) / controlRect.width * 100) / 100;
-            } else if (shiftX > windowRect.width - this.WINDOW_BORDER_TOUCH_WIDTH && shiftX < windowRect.width) {
+                    this.overlayL.setStyle("width", cursor, "px");
+                    this.window.setStyle("width", controlRect.width - overlayRRect.width - cursor, "px");
 
-                min = overlayLRect.width + this.WINDOW_MIN_WIDTH;
-                max = controlRect.width;
+                    left = Math.round(cursor / controlRect.width * 100) / 100;
+                    right = Math.round((controlRect.width - overlayRRect.width) / controlRect.width * 100) / 100;
+                } else if (shiftX > windowRect.width - this.WINDOW_BORDER_TOUCH_WIDTH && shiftX < windowRect.width) {
 
-                cursor = limit(value + windowRect.width, min, max);
+                    min = overlayLRect.width + this.WINDOW_MIN_WIDTH;
+                    max = controlRect.width;
 
-                this.overlayR.setStyle("width", controlRect.width - cursor, "px");
-                this.window.setStyle("width", cursor - overlayLRect.width, "px");
+                    cursor = limit(value + windowRect.width, min, max);
 
-                left = Math.round(overlayLRect.width / controlRect.width * 100) / 100;
-                right = Math.round(cursor / controlRect.width * 100) / 100;
-            } else {
+                    this.overlayR.setStyle("width", controlRect.width - cursor, "px");
+                    this.window.setStyle("width", cursor - overlayLRect.width, "px");
 
-                min = 0;
-                max = controlRect.width - windowRect.width;
+                    left = Math.round(overlayLRect.width / controlRect.width * 100) / 100;
+                    right = Math.round(cursor / controlRect.width * 100) / 100;
+                } else {
 
-                cursor = limit(value, min, max);
+                    min = 0;
+                    max = controlRect.width - windowRect.width;
 
-                this.overlayL.setStyle("width", cursor, "px");
-                this.overlayR.setStyle("width", controlRect.width - windowRect.width - cursor, "px");
+                    cursor = limit(value, min, max);
 
-                left = Math.round(cursor / controlRect.width * 100) / 100;
-                right = Math.round((cursor + windowRect.width) / controlRect.width * 100) / 100;
-            }
+                    this.overlayL.setStyle("width", cursor, "px");
+                    this.overlayR.setStyle("width", controlRect.width - windowRect.width - cursor, "px");
 
-            callback(left, right);
+                    left = Math.round(cursor / controlRect.width * 100) / 100;
+                    right = Math.round((cursor + windowRect.width) / controlRect.width * 100) / 100;
+                }
+
+                callback(left, right);
+            };
+
+            const onMouseUp = e => {
+                e.preventDefault();
+
+                document.removeEventListener("mousemove", onMouseMove, false);
+                document.removeEventListener("mouseup", onMouseUp, false);
+            };
+
+            document.addEventListener("mousemove", onMouseMove, false);
+            document.addEventListener("mouseup", onMouseUp, false);
         };
 
-        const onMouseUp = e => {
-            e.preventDefault();
-
-            document.removeEventListener("mousemove", onMouseMove, true);
-            document.removeEventListener("mouseup", onMouseUp, true);
-        };
-
-        document.addEventListener("mousemove", onMouseMove, true);
-        document.addEventListener("mouseup", onMouseUp, true);
-    };
+        this.window
+            .addEventListener("mousedown", onMouseDown, false)
+            .addEventListener("touchstart", touchHandler, false)
+            .addEventListener("touchmove", touchHandler, false)
+            .addEventListener("touchend", touchHandler, false);
+    }
 }

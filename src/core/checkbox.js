@@ -1,9 +1,10 @@
 import {Dom} from "../helpers";
 
 export class Checkbox {
-    constructor(parent, chart, onClicked) {
+    constructor(parent, chart) {
 
         this.parent = parent;
+        this.chart = chart;
 
         this.check = Dom.from('i')
             .setStyle('background-color', chart.color)
@@ -13,9 +14,6 @@ export class Checkbox {
             .append(this.check)
             .setText(chart.name)
             .pinTo(parent);
-
-        this.box.addEventListener('click', this.onClick.bind(this, chart, onClicked), true);
-        this.box.addEventListener('animationend', this.animationListener.bind(this), false);
 
         return this;
     }
@@ -33,20 +31,26 @@ export class Checkbox {
         return count === 1;
     }
 
-    animationListener(e) {
-        if (e.type.toLowerCase().indexOf("animationend") >= 0) {
-            this.box.removeClasses('animation-shake');
-        }
+    addEventListener(callback) {
+
+        const animationListener = e => {
+            if (e.type.toLowerCase().indexOf("animationend") >= 0) {
+                this.box.removeClasses('animation-shake');
+            }
+        };
+
+        const onClick = () => {
+            if (this.isLastCheckedBox() && this.isChecked())
+                return this.box.addClasses('animation-shake');
+
+            this.isChecked()
+                ? this.box.removeClasses('on').addClasses('off')
+                : this.box.removeClasses('off').addClasses('on');
+
+            callback({ name: this.chart.name, checked: this.isChecked()});
+        };
+
+        this.box.addEventListener('click', onClick, true);
+        this.box.addEventListener('animationend', animationListener.bind(this), false);
     }
-
-    onClick(chart, onClicked) {
-        if (this.isLastCheckedBox() && this.isChecked())
-            return this.box.addClasses('animation-shake');
-
-        this.isChecked()
-            ? this.box.removeClasses('on').addClasses('off')
-            : this.box.removeClasses('off').addClasses('on');
-
-        onClicked({ name: chart.name, checked: this.isChecked()});
-    };
 }

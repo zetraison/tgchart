@@ -83,13 +83,20 @@ export class TChart {
         this.ctxControl.setTransform(dpr, 0, 0, -dpr, 0, this.ctxControl.canvas.height);
     }
 
+    clearMinimap() {
+        this.ctxControl.clearRect(0, 0, this.ctxControl.canvas.width, this.ctxControl.canvas.height);
+    }
+
+    clearSegment() {
+        this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
+    }
+
     drawMinimap(progress) {
         if (progress === undefined) progress = 1;
 
         const min = this.prevMinY + (this.minY - this.prevMinY) * progress;
         const max = this.prevMaxY + (this.maxY - this.prevMaxY) * progress;
 
-        this.ctxControl.clearRect(0, 0, this.ctxControl.canvas.width, this.ctxControl.canvas.height);
         this.charts.forEach(chart =>
             chart.drawLine(this.ctxControl, min, max, this.dpr, (chart.visible ? 1 : 1 - progress)));
 
@@ -105,7 +112,6 @@ export class TChart {
         const min = this.prevSegmentMinY + (this.segmentMinY - this.prevSegmentMinY) * progress;
         const max = this.prevSegmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
 
-        this.ctxChart.clearRect(0, 0, this.ctxChart.canvas.width, this.ctxChart.canvas.height);
         this.segments.forEach(segment =>
             segment.drawLine(this.ctxChart, min, max, this.dpr, (segment.visible ? 1 : 1 - progress)));
 
@@ -133,24 +139,25 @@ export class TChart {
     }
 
     update(anim) {
-        const self = this;
+        const draw = progress => {
+            progress = anim ? progress : 1;
 
-        animate({
-            duration: 200,
-            timing: linear,
-            draw: function(progress) {
-                progress = anim ? progress : 1;
-
-                if (self.updateMinimap)
-                    self.drawMinimap(progress);
-
-                if (self.updateSegment)
-                    self.drawSegment(progress);
-
-                if (self.updateCrosshair)
-                    self.drawCrosshair(progress);
+            if (this.updateMinimap) {
+                this.clearMinimap();
+                this.drawMinimap(progress);
             }
-        });
+
+            if (this.updateSegment || this.updateCrosshair)
+                this.clearSegment();
+
+            if (this.updateSegment)
+                this.drawSegment(progress);
+
+            if (this.updateCrosshair)
+                this.drawCrosshair(progress);
+        };
+
+        animate({duration: 200, timing: linear, draw: draw});
     }
 
     onCheckboxClick(checked) {
@@ -219,17 +226,21 @@ export class TChart {
         e.preventDefault();
         e.stopPropagation();
 
-        this.tooltip.node().setStyle('opacity', 0);
-
         this.updateSegment = true;
         this.updateMinimap = false;
         this.updateCrosshair = false;
         this.update();
+
+        this.tooltip.node().setStyle('opacity', 0);
     }
 
     onWindowResize() {
         this.setContext();
+
+        this.clearMinimap();
         this.drawMinimap();
+
+        this.clearSegment();
         this.drawSegment();
     }
 }

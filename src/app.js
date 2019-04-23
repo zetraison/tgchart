@@ -2,24 +2,15 @@ import {TChart, ThemeButton} from './core';
 import {getCharts} from './helpers/getCharts';
 import {Dom, loadCss, loadJson} from './helpers';
 
+const onCssLoad = () => {
+    const body = Dom.for('body').addClasses('night');
+    const wrapMain = Dom.from("div").addClasses("wrap-main").pinTo(body);
 
-window.addEventListener('load', () => {
-    loadCss("./css/style.css", () => {
-        loadJson("data/chart_data.json", (chartsData) => {
-            const body = Dom.for('body').addClasses('night');
+    const onDataLoad = charts => charts.forEach(chart => new TChart(wrapMain, getCharts(chart)));
+    loadJson("data/chart_data.json", onDataLoad);
 
-            // Create main chart wrapper
-            const wrapMain = Dom.from("div").addClasses("wrap-main").pinTo(body);
+    new ThemeButton(body);
+};
 
-            chartsData.forEach(data => {
-                // Load chart data
-                const charts = getCharts(data);
-
-                // Create chart and pin to main wrapper
-                new TChart(wrapMain, charts);
-            });
-
-            new ThemeButton(body);
-        });
-    });
-});
+const onLoad = () => loadCss("./css/style.css", onCssLoad);
+window.addEventListener('load', onLoad);

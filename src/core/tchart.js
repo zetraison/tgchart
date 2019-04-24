@@ -152,7 +152,7 @@ export class TChart {
         const max = this.segmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
 
         this.segments.forEach(segment => {
-            if (segment.visible)
+            if (segment.visible && this.x)
                 segment.drawCrosshair(this.ctxChart, this.x, min, max, this.dpr);
         });
 
@@ -273,7 +273,7 @@ export class TChart {
         const options = {
             segment: { update: true, animate: true, alphaOff: true },
             minimap: { update: false, animate: true },
-            crosshair: { update: false, animate: true },
+            crosshair: { update: true, animate: true },
             grid: { update: true, animate: true },
             yAxis: { update: true, animate: true }
         };
@@ -320,6 +320,8 @@ export class TChart {
         e.preventDefault();
         e.stopPropagation();
 
+        this.x = null;
+
         const options = {
             segment: { update: true, animate: true, alphaOff: true },
             minimap: { update: false, animate: true },
@@ -333,10 +335,21 @@ export class TChart {
     }
 
     onWindowResize() {
+        const options = {
+            segment: { update: true, animate: true, alphaOff: false },
+            minimap: { update: true, animate: true },
+            crosshair: { update: false, animate: true },
+            grid: { update: true, animate: true },
+            yAxis: { update: true, animate: true }
+        };
+
         this.setContext();
         this.clearMinimap();
-        this.drawMinimap();
         this.clearSegment();
-        this.drawSegment();
+
+        this.drawMinimap(1, options.minimap);
+        this.drawSegment(1, options.segment);
+        this.drawGrid(1, options.grid);
+        this.drawYAxisTickMarks(1, options.yAxis);
     }
 }

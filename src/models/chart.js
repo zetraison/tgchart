@@ -68,13 +68,14 @@ export class Chart {
     }
 
     drawCrosshair(ctx, x, minY, maxY, dpr) {
+        const p = first(this.points.filter(p => p.x === x));
+        if (!p) return;
+
         const minX = this.minX();
         const maxX = this.maxX();
 
         const width = ctx.canvas.width / dpr;
         const height = ctx.canvas.height / dpr;
-
-        const p = first(this.points.filter(p => p.x === x));
 
         let lineX = Math.round(relative(p.x, minX, maxX) * width);
 

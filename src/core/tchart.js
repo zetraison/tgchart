@@ -24,16 +24,14 @@ export class TChart {
             segment: { update: true, animate: true, alphaOff: false },
             minimap: { update: true, animate: true },
             crosshair: { update: false, animate: true },
-            grid: { update: true, animate: true },
-            yAxis: { update: true, animate: true }
+            yAxisGrid: { update: true, animate: true }
         };
 
         this.createDom();
         this.addEventListeners();
         this.setContext();
         this.drawSegment(1, options.segment);
-        this.drawGrid(1, options.grid);
-        this.drawYAxisTickMarks(1, options.yAxis);
+        this.drawYAxisGrid(1, options.yAxisGrid);
         this.drawMinimap(1, options.minimap);
     }
 
@@ -111,10 +109,10 @@ export class TChart {
         const min = this.prevMinY + (this.minY - this.prevMinY) * progress;
         const max = this.prevMaxY + (this.maxY - this.prevMaxY) * progress;
 
-        this.ctxControl.lineWidth = 1;
-
-        this.charts.forEach(chart =>
-            chart.drawLine(this.ctxControl, min, max, this.dpr, (chart.visible ? 1 : 1 - progress)));
+        this.charts.forEach(chart => {
+            const alpha = (chart.visible ? 1 : 1 - progress);
+            chart.drawMinimapLine(this.ctxControl, min, max, this.dpr, alpha);
+        });
 
         if (progress === 1) {
             this.prevMinY = this.minY;
@@ -129,8 +127,6 @@ export class TChart {
 
         const min = this.prevSegmentMinY + (this.segmentMinY - this.prevSegmentMinY) * progress;
         const max = this.prevSegmentMaxY + (this.segmentMaxY - this.prevSegmentMaxY) * progress;
-
-        this.ctxChart.lineWidth = 2;
 
         this.segments.forEach(segment => {
             const alpha = options.alphaOff && !segment.visible ? 0 : segment.visible ? 1 : 1 - progress;
@@ -162,57 +158,42 @@ export class TChart {
         }
     }
 
-    drawGrid(progress, options) {
-        if (progress === undefined || !options.animate) {
-            progress = 1;
-        }
+    drawYAxisGrid(progress, options) {
+        // if (progress === undefined || !options.animate) {
+        //     progress = 1;
+        // }
+        progress = 1;
 
         const ctx = this.ctxChart;
         const width = ctx.canvas.width / this.dpr;
-        const height = ctx.canvas.height / this.dpr;
-        const step = Math.round(height / this.gridCount);
+        const height = Math.floor(ctx.canvas.height / this.dpr);
+        const step = Math.ceil((height - 25) / this.gridCount);
+        const roundRange = this.roundRange;
 
-        ctx.strokeStyle = "#aaa";
+        console.log(height);
+
+        ctx.strokeStyle = "#556778";
+        ctx.fillStyle = "#556778";
         ctx.lineWidth = 0.2;
+        ctx.font = "11px bold HelveticaNeue-Light,Helvetica,sans-serif";
+
+        const stepValue = Math.round((roundRange.yMax - roundRange.yMin) / this.gridCount);
 
         ctx.beginPath();
 
         for (let i = 0; i < this.gridCount; i++) {
-            ctx.moveTo(0, step * (i + progress));
-            ctx.lineTo(width, step * (i + progress));
+            ctx.moveTo(0, height - step * (i + progress));
+            ctx.lineTo(width, height - step * (i + progress));
+
+            ctx.save();
+            ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+            ctx.fillText(i * stepValue + "", 0, height - (i - 1 + progress) * step - 25);
+            ctx.restore();
         }
 
         ctx.closePath();
 
         ctx.stroke();
-    }
-
-    drawYAxisTickMarks(progress, options) {
-        if (progress === undefined || !options.animate) {
-            progress = 1;
-        }
-
-        const ctx = this.ctxChart;
-
-        const draw = () => {
-            const height = ctx.canvas.height / this.dpr;
-            const step = Math.round(height / this.gridCount);
-            const roundRange = this.roundRange;
-
-            ctx.font = "11px bold HelveticaNeue-Light,Helvetica,sans-serif";
-            ctx.fillStyle = "#aaa";
-
-            const stepValue = Math.round((roundRange.yMax - roundRange.yMin) / this.gridCount);
-
-            for (let i = 0; i < this.gridCount; i++) {
-                ctx.fillText(i * stepValue + "", 0, height - (i - 1 + progress) * step - 6);
-            }
-        };
-
-        ctx.save();
-        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-        draw();
-        ctx.restore();
     }
 
     update(options) {
@@ -223,7 +204,7 @@ export class TChart {
                 this.drawMinimap(progress, options.minimap);
             }
 
-            if (options.segment.update || options.crosshair.update || options.grid.update || options.yAxis.update)
+            if (options.segment.update || options.crosshair.update || options.yAxisGrid.update)
                 this.clearSegment();
 
             if (options.segment.update)
@@ -232,11 +213,8 @@ export class TChart {
             if (options.crosshair.update)
                 this.drawCrosshair(progress, options.crosshair);
 
-            if (options.grid.update)
-                this.drawGrid(progress, options.grid);
-
-            if (options.yAxis.update)
-                this.drawYAxisTickMarks(progress, options.yAxis);
+            if (options.yAxisGrid.update)
+                this.drawYAxisGrid(progress, options.yAxisGrid);
         };
 
         animate({duration: 200, timing: linear, draw: draw});
@@ -257,9 +235,8 @@ export class TChart {
         const options = {
             segment: { update: true, animate: true },
             minimap: { update: true, animate: true },
-            crosshair: { update: false, animate: true },
-            grid: { update: true, animate: true },
-            yAxis: { update: true, animate: true }
+            crosshair: { update: false, animate: false },
+            yAxisGrid: { update: true, animate: true }
         };
         this.update(options);
     }
@@ -274,14 +251,12 @@ export class TChart {
             segment: { update: true, animate: true, alphaOff: true },
             minimap: { update: false, animate: true },
             crosshair: { update: true, animate: true },
-            grid: { update: true, animate: true },
-            yAxis: { update: true, animate: true }
+            yAxisGrid: { update: true, animate: true }
         };
         this.update(options);
     };
 
     onMouseMove(e) {
-
         const {left: wrapLeft, width: wrapWidth} = this.wrapChart.element.getBoundingClientRect();
         const {width: tooltipWidth} = this.tooltip.node().element.getBoundingClientRect();
 
@@ -300,8 +275,7 @@ export class TChart {
             segment: { update: true, animate: true, alphaOff: true },
             minimap: { update: false, animate: false },
             crosshair: { update: true, animate: true },
-            grid: { update: true, animate: false },
-            yAxis: { update: true, animate: false }
+            yAxisGrid: { update: true, animate: false }
         };
         this.update(options);
 
@@ -326,8 +300,7 @@ export class TChart {
             segment: { update: true, animate: true, alphaOff: true },
             minimap: { update: false, animate: true },
             crosshair: { update: false, animate: true },
-            grid: { update: true, animate: false },
-            yAxis: { update: true, animate: false }
+            yAxisGrid: { update: true, animate: false }
         };
         this.update(options);
 
@@ -339,8 +312,7 @@ export class TChart {
             segment: { update: true, animate: true, alphaOff: false },
             minimap: { update: true, animate: true },
             crosshair: { update: false, animate: true },
-            grid: { update: true, animate: true },
-            yAxis: { update: true, animate: true }
+            yAxisGrid: { update: true, animate: true }
         };
 
         this.setContext();
@@ -349,7 +321,6 @@ export class TChart {
 
         this.drawMinimap(1, options.minimap);
         this.drawSegment(1, options.segment);
-        this.drawGrid(1, options.grid);
-        this.drawYAxisTickMarks(1, options.yAxis);
+        this.drawYAxisGrid(1, options.yAxisGrid);
     }
 }

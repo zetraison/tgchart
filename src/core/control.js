@@ -3,7 +3,7 @@ import {Dom, limit, touchHandler} from "../helpers";
 export class Control {
     constructor(parent) {
 
-        this.WINDOW_MIN_WIDTH = 25;
+        this.WINDOW_MIN_WIDTH = 28;
         this.WINDOW_BORDER_TOUCH_WIDTH = 10;
 
         this.node = Dom.from("div").addClasses("control");

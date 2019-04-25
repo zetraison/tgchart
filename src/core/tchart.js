@@ -170,8 +170,6 @@ export class TChart {
         const step = Math.ceil((height - 25) / this.gridCount);
         const roundRange = this.roundRange;
 
-        console.log(height);
-
         ctx.strokeStyle = "#556778";
         ctx.fillStyle = "#556778";
         ctx.lineWidth = 0.2;

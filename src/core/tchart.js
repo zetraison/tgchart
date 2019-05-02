@@ -175,7 +175,7 @@ export class TChart {
         ctx.lineWidth = 0.2;
         ctx.font = "11px bold HelveticaNeue-Light,Helvetica,sans-serif";
 
-        const stepValue = Math.round((roundRange.yMax - roundRange.yMin) / this.gridCount);
+        const stepY = Math.round((roundRange.yMax - roundRange.yMin) / this.gridCount);
 
         ctx.beginPath();
 
@@ -183,9 +183,11 @@ export class TChart {
             ctx.moveTo(0, height - step * (i + progress));
             ctx.lineTo(width, height - step * (i + progress));
 
+            const valueY = `${roundRange.yMin + i * stepY}`;
+
             ctx.save();
             ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-            ctx.fillText(i * stepValue + "", 0, height - (i - 1 + progress) * step - 25);
+            ctx.fillText(valueY + "", 0, height - (i - 1 + progress) * step - 25);
             ctx.restore();
         }
 

@@ -1,6 +1,6 @@
-import {TChart, ThemeButton} from './core';
-import {getCharts} from './helpers/getCharts';
-import {Dom, loadCss, loadJson} from './helpers';
+import {TChart, ThemeButton} from './app/core';
+import {getCharts} from './app/helpers/getCharts';
+import {Dom, loadCss, loadJson} from './app/helpers';
 
 const onCssLoad = () => {
     const body = Dom.for('body').addClasses('night');

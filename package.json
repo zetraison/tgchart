@@ -7,7 +7,7 @@
     "dev": "webpack --mode development --watch",
     "build": "webpack --mode production --progress --hide-modules",
     "start": "webpack-dev-server --mode development --content-base dist/ --open",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --require @babel/register --recursive test"
   },
   "repository": {
     "type": "git",
@@ -23,8 +23,11 @@
   },
   "homepage": "https://github.com/zetraison/tchart#readme",
   "devDependencies": {
+    "@babel/core": "^7.4.4",
+    "@babel/preset-env": "^7.4.4",
+    "@babel/register": "^7.4.4",
     "copy-webpack-plugin": "^5.0.2",
-    "file-loader": "^3.0.1",
+    "mocha": "^6.1.4",
     "uglifyjs-webpack-plugin": "^2.1.2",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0",

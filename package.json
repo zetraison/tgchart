@@ -5,9 +5,10 @@
   "main": "tchart.js",
   "scripts": {
     "dev": "webpack --mode development --watch",
-    "build": "webpack --mode production --progress --hide-modules",
+    "prod": "webpack --mode production --progress --hide-modules",
     "start": "webpack-dev-server --mode development --content-base dist/ --open",
-    "test": "mocha --require @babel/register --recursive test"
+    "test": "mocha --require @babel/register --recursive test",
+    "coverage": "nyc npm run test"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,7 @@
     "@babel/register": "^7.4.4",
     "copy-webpack-plugin": "^5.0.2",
     "mocha": "^6.1.4",
+    "nyc": "^14.1.0",
     "uglifyjs-webpack-plugin": "^2.1.2",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0",

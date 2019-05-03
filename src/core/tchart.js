@@ -180,14 +180,17 @@ export class TChart {
         ctx.beginPath();
 
         for (let i = 0; i < this.gridCount; i++) {
-            ctx.moveTo(0, height - step * (i + progress));
-            ctx.lineTo(width, height - step * (i + progress));
+
+            const y = height - step * (i - 1 + progress);
+
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
 
             const valueY = `${roundRange.yMin + i * stepY}`;
 
             ctx.save();
             ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-            ctx.fillText(valueY + "", 0, height - (i - 1 + progress) * step - 25);
+            ctx.fillText(valueY, 0, y - 25);
             ctx.restore();
         }
 

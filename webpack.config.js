@@ -1,6 +1,6 @@
 const path = require('path');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
 
@@ -15,26 +15,28 @@ module.exports = {
     },
 
     plugins: [
-        new CopyWebpackPlugin([
-            { from: 'src/index.html', to: './' },
-            { from: 'src/css', to: './css' },
-            { from: 'src/data', to: './data' },
-            { from: 'src/resources', to: './resources'}
-        ])
+        new CopyWebpackPlugin({
+            patterns: [
+                { from: 'src/index.html', to: './' },
+                { from: 'src/css', to: './css' },
+                { from: 'src/data', to: './data' },
+                { from: 'src/resources', to: './resources'}
+            ]
+        })
     ],
 
     optimization: {
         minimizer: [
-            new UglifyJsPlugin({
+            new TerserPlugin({
                 cache: true,
                 parallel: true,
-                uglifyOptions: {
+                terserOptions: {
                     compress: false,
                     ecma: 6,
                     mangle: true
                 },
                 sourceMap: false
-            })
+            }),
         ]
     }
 };

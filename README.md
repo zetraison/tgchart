@@ -1,5 +1,32 @@
 # TChart
-March telegram contest 2019. Open source chart library based on canvas 2D.
+March telegram contest 2019. Chart library based on canvas 2D.
+
+# Build
+
+## Install dependencies
+```bash
+npm install
+```
+
+## Run tests and calculate coverage
+```bash
+npm run test && npm run coverage
+```
+
+## Start dev server
+```bash
+npm run start
+```
+
+## Build in development mode
+```bash
+npm run dev
+```
+
+## Build in production mode
+```bash
+npm run prod
+```
 
 # Getting Started
 
